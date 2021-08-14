@@ -22,6 +22,7 @@ lazy_static::lazy_static! {
 mod errors;
 pub use self::errors::*;
 pub mod path;
+pub mod memory;
 
 pub trait FsReadDir {
     fn readdir(&mut self) -> Result<Vec<&mut (dyn FsNode)>, FsError>;

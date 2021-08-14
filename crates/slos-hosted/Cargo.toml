@@ -1,0 +1,16 @@
+cargo-features = ["edition2021"]
+
+[package]
+edition = "2021"
+name = "slos-hosted"
+version = "0.0.1-dev.1"
+license = "BSD-2-Clause-Patent"
+
+[features]
+default = [ ]
+
+[dependencies]
+slos-filesystem = { path = "../slos-filesystem", features = [ "std" ]}
+rustyline = { version = "8.2.0" }
+shlex = { version = "1.0.0" }
+anyhow = { version = "1.0.0" }

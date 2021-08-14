@@ -1,0 +1,19 @@
+name: "Test"
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: arcnmx/ci/actions/nix/install@master
+      - run: nix-shell --command "cargo --version && rustc --version"
+
+      - name: Run tests
+        run: nix-shell --command "cargo test --all"
+
+      - name: Run tests (no default features)
+        run: nix-shell --command "cargo test --all --no-default-features"

@@ -1,0 +1,15 @@
+cargo-features = ["edition2021"]
+
+[package]
+edition = "2021"
+name = "slos"
+version = "0.0.1-dev.1"
+license = "BSD-2-Clause-Patent"
+
+[workspace]
+members = [
+    "crates/*"
+]
+
+[dependencies]
+

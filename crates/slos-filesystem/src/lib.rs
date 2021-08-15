@@ -150,8 +150,6 @@ impl FilesystemBase {
 
         // unwrap the mountpoint
         let mountpoint = closest.unwrap();
-        #[cfg(feature = "std")]
-        std::dbg!(&mountpoint);
 
         // get the remaining path segments after this mountpoint
         let path_remaining = {

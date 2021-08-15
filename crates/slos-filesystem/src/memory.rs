@@ -1,77 +1,65 @@
 use crate::alloc_prelude::*;
 use crate::{FsError, FsRoot, FsReadDir, FsWriteDir, FsNode, FsDirectory, FsFile, FsFileHandle};
 
-#[derive(Debug)]
-pub struct MemoryFs<'a> {
-    pub root_files: Vec<MemoryFsFile<'a>>,
-    pub root_directories: Vec<MemoryFsDirectory<'a>>,
-    current_inode: usize,
+#[derive(Debug, PartialEq)]
+pub struct SimpleMemoryFs {
+    pub files: Vec<SimpleMemoryFsFile>,
+    pub current_inode: usize,
 }
 
-impl MemoryFs<'_> {
+impl SimpleMemoryFs {
     pub fn new() -> Self {
         Self {
-            root_files: Vec::new(),
-            root_directories: Vec::new(),
+            files: Vec::new(),
             current_inode: 0,
         }
     }
 
-    fn has_root_filename(&self, name: &String) -> bool {
-        for f in self.root_files.iter() {
+    fn has_filename(&self, name: &str) -> bool {
+        for f in self.files.iter() {
             if &f.name == name {
                 return true;
             }
         }
 
-        // for f in self.root_directories.iter() {
-        //     if f.name == name {
-        //         return true;
-        //     }
-        // }
-
         false
     }
 }
 
-impl FsReadDir for MemoryFs<'_> {
+impl FsReadDir for SimpleMemoryFs {
     fn readdir(&mut self) -> Result<Vec<&mut (dyn FsNode)>, FsError> {
         let mut res = Vec::new();
 
-        for file in self.root_files.iter_mut() {
+        for file in self.files.iter_mut() {
             res.push(file as &mut dyn FsNode);
         }
-
-        // for dir in self.root_directories.iter_mut() {
-        //     res.push(dir as &mut dyn FsNode);
-        // }
 
         Ok(res)
     }
 }
 
-impl<'a> FsWriteDir for MemoryFs<'a> {
+impl FsWriteDir for SimpleMemoryFs {
     fn touch(&mut self, name: &str) -> Result<&mut (dyn FsNode), FsError> {
         let name = String::from(name);
-        if self.has_root_filename(&name) {
+        if self.has_filename(&name) {
             return Err(FsError::FileExists);
         }
 
         self.current_inode += 1;
 
-        let f = MemoryFsFile {
-            parent: None, // TODO: figure this shit out
+        let f = SimpleMemoryFsFile {
+            parent_index: None,
             inode: self.current_inode,
             name: name,
             content: Vec::new(),
         };
 
-        self.root_files.push(f);
-        Ok(self.root_files.last_mut().unwrap() as &mut dyn FsNode)
+        self.files.push(f);
+        Ok(self.files.last_mut().unwrap() as &mut dyn FsNode)
     }
 }
 
-impl FsNode for MemoryFs<'_> {
+impl FsNode for SimpleMemoryFs {
     fn mount(&self) -> Option<&dyn FsRoot> {
         Some(self as &dyn FsRoot)
     }
@@ -97,27 +85,24 @@ impl FsNode for MemoryFs<'_> {
     }
 }
 
-impl FsDirectory for MemoryFs<'_> { }
-impl FsRoot for MemoryFs<'_> { }
+impl FsDirectory for SimpleMemoryFs { }
+impl FsRoot for SimpleMemoryFs { }
 
-#[derive(Debug, Default)]
-pub struct MemoryFsFile<'a> {
-    pub parent: Option<&'a MemoryFs<'a>>,
+#[derive(Debug, Default, PartialEq)]
+pub struct SimpleMemoryFsFile {
+    pub parent_index: Option<usize>,
     pub inode: usize,
     pub name: String,
     pub content: Vec<u8>,
 }
 
-impl FsNode for MemoryFsFile<'_> {
+impl FsNode for SimpleMemoryFsFile {
     fn mount(&self) -> Option<&dyn FsRoot> {
-        if let Some(p) = self.parent {
-            Some(p as &dyn FsRoot)
-        } else {
-            None
-        }
+        None
     }
 
-    fn inode(&self) -> usize {        self.inode
+    fn inode(&self) -> usize {
+        self.inode
     }
 
     fn name(&self) -> &str {
@@ -134,16 +119,15 @@ impl FsNode for MemoryFsFile<'_> {
 
     fn try_file(&mut self) -> Option<&mut (dyn FsFile)> {
         Some(self as &mut dyn FsFile)
-    }
-}
+    }}
 
-impl FsFile for MemoryFsFile<'_> {
+impl FsFile for SimpleMemoryFsFile {
     fn open(&mut self) -> Result<&mut (dyn FsFileHandle), FsError> {
         Ok(self as &mut dyn FsFileHandle)
     }
 }
 
-impl FsFileHandle for MemoryFsFile<'_> {
+impl FsFileHandle for SimpleMemoryFsFile {
     fn file(&mut self) -> &mut (dyn FsFile) {
         self as &mut dyn FsFile
     }
@@ -180,10 +164,4 @@ impl FsFileHandle for MemoryFsFile<'_> {
 
         Ok(())
     }
-}
-
-#[derive(Debug)]
-pub struct MemoryFsDirectory<'a> {
-    pub path: Vec<String>,
-    pub files: Vec<MemoryFsFile<'a>>,
 }

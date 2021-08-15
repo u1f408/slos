@@ -1,7 +1,7 @@
 use anyhow::{bail, Result, Context as AnyhowContext};
 
 use super::Context;
-use slos_filesystem::memory::MemoryFs;
+use slos_filesystem::memory::SimpleMemoryFs;
 
 pub fn cmd_path_normalize(_context: &mut Context, args: &[String]) -> Result<()> {
     for path in args.iter() {
@@ -49,7 +49,7 @@ pub fn cmd_mount_new_memoryfs(context: &mut Context, args: &[String]) -> Result<
         .map(|x| x.as_str())
         .collect::<Vec<&str>>();
 
-    context.fs.mount(&path_split, Box::new(MemoryFs::new()))
+    context.fs.mount(&path_split, Box::new(SimpleMemoryFs::new()))
         .with_context(|| "failed to mount new MemoryFs")?;
 
     Ok(())

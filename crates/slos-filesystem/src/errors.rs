@@ -2,26 +2,26 @@ use displaydoc::Display as DisplayDoc;
 
 #[derive(DisplayDoc, Debug)]
 pub enum FsError {
-    /// Permission denied
-    PermissionDenied,
+	/// Permission denied
+	PermissionDenied,
 
-    /// A file with a duplicate name already exists
-    FileExists,
+	/// A file with a duplicate name already exists
+	FileExists,
 
-    /// File already has an open handle
-    OpenHandleExists,
+	/// File already has an open handle
+	OpenHandleExists,
 
-    /// End of file reached (possibly unexpectedly)
-    EndOfFile,
+	/// End of file reached (possibly unexpectedly)
+	EndOfFile,
 
-    /// File not found
-    FileNotFound,
+	/// File not found
+	FileNotFound,
 
-    /// Filesystem root error (possibly set to None)
-    FilesystemRootError,
+	/// Filesystem root error (possibly set to None)
+	FilesystemRootError,
 
-    /// Unknown error
-    Unknown,
+	/// Unknown error
+	Unknown,
 }
 
 #[cfg(feature = "std")]
@@ -29,11 +29,11 @@ impl std::error::Error for FsError {}
 
 #[derive(DisplayDoc, Debug)]
 pub enum MountError {
-    /// Permission denied
-    PermissionDenied,
+	/// Permission denied
+	PermissionDenied,
 
-    /// Unknown error
-    Unknown,
+	/// Unknown error
+	Unknown,
 }
 
 #[cfg(feature = "std")]

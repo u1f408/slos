@@ -1,0 +1,17 @@
+cargo-features = ["edition2021"]
+
+[package]
+edition = "2021"
+name = "slos-hal"
+version = "0.0.1-dev.1"
+license = "BSD-2-Clause-Patent"
+
+[features]
+std = [ "displaydoc/std", "slos-filesystem/std", "slos-helpers/std" ]
+default = [ ]
+
+[dependencies]
+slos-filesystem = { path = "../slos-filesystem" }
+slos-helpers = { path = "../slos-helpers" }
+displaydoc = { version = "0.2", default-features = false }
+lazy_static = { version = "1.4", features = [ "spin_no_std" ] }

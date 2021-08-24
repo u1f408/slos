@@ -10,7 +10,11 @@ license = "BSD-2-Clause-Patent"
 default = [ ]
 
 [dependencies]
-slos-filesystem = { path = "../slos-filesystem", features = [ "std" ]}
+slos = { path = "../..", features = [ ] }
+slos-helpers = { path = "../slos-helpers", features = [ "std" ] }
+slos-filesystem = { path = "../slos-filesystem", features = [ "std" ] }
+slos-hal = { path = "../slos-hal", features = [ "std" ] }
+lazy_static = { version = "1.4" }
 rustyline = { version = "8.2.0" }
 shlex = { version = "1.0.0" }
 anyhow = { version = "1.0.0" }

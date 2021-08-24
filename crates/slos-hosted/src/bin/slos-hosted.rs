@@ -46,6 +46,6 @@ fn main() -> Result<()> {
 	main_handle
 		.join()
 		.or_else(|x| Err(anyhow!("hosted_main error {:#?}", x)))??;
-		
+
 	Ok(())
 }

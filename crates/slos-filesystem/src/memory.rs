@@ -129,11 +129,7 @@ impl FsFile for SimpleMemoryFsFile {
 }
 
 impl FsFileHandle for SimpleMemoryFsFile {
-	fn file(&mut self) -> &mut (dyn FsFile) {
-		self as &mut dyn FsFile
-	}
-
-	fn read(&mut self, offset: usize, length: Option<usize>) -> Result<&[u8], FsError> {
+	fn read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError> {
 		if offset > self.content.len() {
 			return Err(FsError::EndOfFile);
 		}
@@ -149,7 +145,7 @@ impl FsFileHandle for SimpleMemoryFsFile {
 			final_length
 		};
 
-		return Ok(&self.content[offset..(offset + final_length)]);
+		return Ok(Vec::from(&self.content[offset..(offset + final_length)]));
 	}
 
 	fn write(&mut self, offset: usize, data: &[u8]) -> Result<(), FsError> {

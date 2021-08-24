@@ -50,8 +50,7 @@ pub trait FsFile: FsNode {
 }
 
 pub trait FsFileHandle {
-	fn file(&mut self) -> &mut (dyn FsFile);
-	fn read(&mut self, offset: usize, length: Option<usize>) -> Result<&[u8], FsError>;
+	fn read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError>;
 	fn write(&mut self, offset: usize, data: &[u8]) -> Result<(), FsError>;
 }
 

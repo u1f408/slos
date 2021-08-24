@@ -17,11 +17,25 @@ pub enum FsError {
 	/// File not found
 	FileNotFound,
 
+	/// Invalid argument
+	InvalidArgument,
+
 	/// Filesystem root error (possibly set to None)
 	FilesystemRootError,
 
+	#[cfg(feature = "std")]
+	/// IO error: {0}
+	StdIoError(std::io::Error),
+
 	/// Unknown error
 	Unknown,
+}
+
+#[cfg(feature = "std")]
+impl From<std::io::Error> for FsError {
+	fn from(e: std::io::Error) -> FsError {
+		FsError::StdIoError(e)
+	}
 }
 
 #[cfg(feature = "std")]

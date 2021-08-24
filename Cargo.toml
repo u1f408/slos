@@ -6,10 +6,17 @@ name = "slos"
 version = "0.0.1-dev.1"
 license = "BSD-2-Clause-Patent"
 
+[features]
+default = [ ]
+
+[dependencies]
+slos-helpers = { path = "crates/slos-helpers" }
+slos-filesystem = { path = "crates/slos-filesystem" }
+slos-hal = { path = "crates/slos-hal" }
+displaydoc = { version = "0.2", default-features = false }
+log = { version = "0.4.14", default-features = false }
+
 [workspace]
 members = [
     "crates/*"
 ]
-
-[dependencies]
-

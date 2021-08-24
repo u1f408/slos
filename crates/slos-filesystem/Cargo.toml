@@ -14,5 +14,5 @@ default = [ ]
 slos-helpers = { path = "../slos-helpers" }
 displaydoc = { version = "0.2", default-features = false }
 tinyvec = { version = "1.3", features = [ "alloc" ] }
-lazy_static = { version = "1.4", features = [ "spin_no_std" ]}
+lazy_static = { version = "1.4", features = [ "spin_no_std" ] }
 lasso = { version = "0.5", features = [ "no-std" ] }

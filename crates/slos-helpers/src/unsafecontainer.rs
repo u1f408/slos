@@ -23,6 +23,11 @@ impl<T> UnsafeContainer<T> {
 		self.0.into_inner()
 	}
 
+	/// Replace the interior value, returning the old one
+	pub fn replace(&self, t: T) -> T {
+		return core::mem::replace(self.get(), t);
+	}
+
 	/// Get a mutable reference to the interior value.
 	pub fn get<'a>(&self) -> &'a mut T {
 		unsafe { &mut *self.0.get() }

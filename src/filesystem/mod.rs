@@ -3,7 +3,8 @@ use lazy_static::lazy_static;
 use crate::alloc_prelude::*;
 use crate::KernelError;
 
-use slos_filesystem::FilesystemBase;
+use slos_filesystem::path as fspath;
+use slos_filesystem::{FilesystemBase, FsError, FsFileHandle};
 use slos_helpers::UnsafeContainer;
 
 pub mod devices;
@@ -23,22 +24,29 @@ pub fn init() -> Result<(), KernelError> {
 	Ok(())
 }
 
+/// Open a file somewhere on the filesystem, returning a handle
+///
+/// The `path` is normalized and segmented before being used to call the
+/// `FilesystemBase::node_at_path` method to find the file in question.
+/// Errors from that are bubbled, if that function returns a non-file node
+/// then we return an `Err(FsError::FileNotFound)`, otherwise we try to get
+/// a handle on that file by returning the `Result` from `FsFile::open`.
+pub fn fopen<'a>(path: &str) -> Result<&'a mut (dyn FsFileHandle), FsError> {
+	let path = fspath::split(path);
+	let path = path.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
+
+	match FSBASE.get().node_at_path(&path)?.try_file() {
+		Some(file) => file.open(),
+		None => Err(FsError::FileNotFound),
+	}
+}
+
 #[cfg(feature = "init_examples")]
 pub fn init_examples_console_write() -> Result<(), KernelError> {
 	debug!("attempting write to system console via filesystem");
-	if let Ok(devnode) = FSBASE.get().node_at_path(&["sys", "dev"]) {
-		if let Some(devdir) = devnode.try_directory() {
-			if let Ok(mut devices) = devdir.readdir() {
-				if let Some(consolenode) =
-					devices.iter_mut().filter(|x| x.name() == "console").next()
-				{
-					if let Some(consolefile) = consolenode.try_file() {
-						if let Ok(consolehandle) = consolefile.open() {
-							let _ = consolehandle.raw_write(0, b"hello via the filesystem!\n");
-						}
-					}
-				}
-			}
+	if let Ok(fh) = fopen("/sys/dev/console") {
+		if let Err(e) = fh.raw_write(0, b"hello via the filesystem!\n") {
+			error!("failed to write to console: {:?}", e);
 		}
 	}
 

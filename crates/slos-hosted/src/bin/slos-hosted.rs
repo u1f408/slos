@@ -1,11 +1,14 @@
+#[macro_use]
+extern crate slos_log;
+
 use anyhow::{anyhow, Result};
 use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::flag;
 use signal_hook::iterator::{exfiltrator::SignalOnly, SignalsInfo};
-use simple_logger::SimpleLogger;
 use std::sync::{atomic::AtomicBool, Arc};
 use std::thread::{self, Thread};
 use std::time::Duration;
+use log::LevelFilter;
 
 use slos::kmain;
 use slos_hosted::hal::interrupts::HostedInterrupt;
@@ -19,6 +22,8 @@ fn hosted_interrupts(kmain_thread: Thread) {
 		}
 
 		while let Some(interrupt) = SYSTEM.get().pending_interrupts.pop() {
+			trace!("dispatching {:?}", interrupt);
+
 			// Halt the CPU, which will park the thread at the next opportunity
 			SYSTEM.get().halted = true;
 
@@ -71,17 +76,22 @@ fn hosted_clock_tick() {
 
 fn hosted_main() -> Result<()> {
 	// Init SYSTEM
-	log::debug!("SYSTEM is currently {:?}", SYSTEM.get());
+	trace!("SYSTEM is currently {:?}", SYSTEM.get());
 
 	// Hand over to kmain
-	log::info!("Init complete, handing over to kmain");
+	info!("Init complete, handing over to kmain");
 	kmain(SYSTEM.get()).or_else(|x| Err(anyhow!("kmain returned an error!? {:#?}", x)))?;
 
 	Ok(())
 }
 
 fn main() -> Result<()> {
-	SimpleLogger::new().init()?;
+	env_logger::Builder::new()
+		.format_timestamp_nanos()
+		.filter_level(LevelFilter::Info)
+		.filter_module(module_path!(), LevelFilter::Debug)
+		.parse_default_env()
+		.try_init()?;
 
 	let term_now = Arc::new(AtomicBool::new(false));
 	for sig in TERM_SIGNALS {
@@ -90,13 +100,13 @@ fn main() -> Result<()> {
 	}
 
 	// Start hosted_main
-	log::debug!("Starting hosted_main in a thread");
+	debug!("Starting hosted_main in a thread");
 	let main_handle = thread::spawn(hosted_main);
 	let main_thread = main_handle.thread().clone();
 	SYSTEM.get().kmain_thread = Some(main_thread.clone());
 
 	// Start other threads
-	log::debug!("Starting utility threads");
+	debug!("Starting utility threads");
 	let handles = vec![
 		thread::spawn(move || hosted_interrupts(main_thread.clone())),
 		thread::spawn(hosted_clock_tick),
@@ -105,7 +115,7 @@ fn main() -> Result<()> {
 	// Wait for signal and set immediate return flag
 	let mut signals = SignalsInfo::<SignalOnly>::new(TERM_SIGNALS)?;
 	for _ in &mut signals {
-		log::warn!("Requesting kmain return, ^C again to terminate");
+		error!("Requesting kmain return, ^C again to terminate");
 
 		// Tell the thread to return as soon as it's unparked …
 		let mut system = SYSTEM.get();

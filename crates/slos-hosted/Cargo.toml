@@ -7,6 +7,7 @@ version = "0.0.1-dev.1"
 license = "BSD-2-Clause-Patent"
 
 [features]
+init_examples = [ "slos/init_examples" ] 
 repl = [ "dep:rustyline" ]
 default = [ "repl" ]
 
@@ -15,13 +16,14 @@ slos = { path = "../..", features = [ ] }
 slos-helpers = { path = "../slos-helpers", features = [ "std" ] }
 slos-filesystem = { path = "../slos-filesystem", features = [ "std" ] }
 slos-hal = { path = "../slos-hal", features = [ "std" ] }
+slos-log = { path = "../slos-log", features = [ "std" ] }
 lazy_static = { version = "1.4" }
 rustyline = { version = "8.2.0", optional = true }
 shlex = { version = "1.0.0" }
 anyhow = { version = "1.0.0" }
 signal-hook = { version = "0.3.9", features = [ "extended-siginfo" ] }
 log = { version = "0.4.14", features = [ "std" ] }
-simple_logger = { version = "1.13.0", features = [ "stderr" ] }
+env_logger = { version = "0.9.0" }
 
 [[bin]]
 name = "slos-hosted"

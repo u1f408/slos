@@ -13,6 +13,7 @@ default = [ ]
 slos-helpers = { path = "crates/slos-helpers" }
 slos-filesystem = { path = "crates/slos-filesystem" }
 slos-hal = { path = "crates/slos-hal" }
+slos-log = { path = "crates/slos-log" }
 lazy_static = { version = "1.4", features = [ "spin_no_std" ] }
 displaydoc = { version = "0.2", default-features = false }
 log = { version = "0.4.14", default-features = false }

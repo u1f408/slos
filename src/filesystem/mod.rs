@@ -14,11 +14,11 @@ lazy_static! {
 }
 
 pub fn init() -> Result<(), KernelError> {
-	log::info!("initializing filesystem");
+	info!("initializing filesystem");
 	let fs = FSBASE.get();
 
 	fs.mount(&["sys", "dev"], Box::new(devices::system_devices()))?;
 
-	log::debug!("FSBASE is currently {:?}", fs);
+	trace!("FSBASE is currently {:?}", fs);
 	Ok(())
 }

@@ -7,8 +7,10 @@ extern crate alloc;
 use crate::alloc_prelude::*;
 pub use alloc::prelude::v1 as alloc_prelude;
 
-use lazy_static::lazy_static;
+#[macro_use]
+extern crate slos_log;
 
+use lazy_static::lazy_static;
 use slos_hal::SystemHardware;
 use slos_helpers::UnsafeContainer;
 
@@ -90,8 +92,8 @@ pub fn kmain(initial_system: &'static mut dyn SystemHardware) -> Result<(), Kern
 		current_system().current_cpu().halt();
 	}
 
-	log::debug!(
-		"kmain returning, was alive for {}s",
+	error!(
+		"returning, was alive for {}s",
 		clock::BOOT_CLOCK.get()
 	);
 	Ok(())

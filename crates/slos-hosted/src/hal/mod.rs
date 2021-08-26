@@ -40,7 +40,7 @@ impl HostedSystem {
 			}
 
 			if self.return_next_iter {
-				log::debug!("HostedSystem return_next_iter set, unparking and unhalting");
+				error!("return_next_iter set, unparking and unhalting");
 				self.halted = false;
 				if let Some(kmain_thread) = &self.kmain_thread {
 					kmain_thread.unpark();

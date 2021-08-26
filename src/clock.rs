@@ -23,7 +23,7 @@ lazy_static! {
 }
 
 pub fn init() -> Result<(), KernelError> {
-	log::info!("initializing clock");
+	info!("initializing clock");
 	let _boot_clock = BOOT_CLOCK.get();
 
 	// TODO: clock initialization
@@ -32,7 +32,7 @@ pub fn init() -> Result<(), KernelError> {
 }
 
 pub fn treat_as_unstable() {
-	log::debug!("clock is being treated as unstable");
+	debug!("clock is being treated as unstable");
 	unsafe {
 		CLOCK_UNSTABLE = true;
 	}
@@ -43,7 +43,7 @@ pub fn on_tick() {
 	let mut warn_clock = PREVIOUS_CLOCK_TICK.get().clone();
 	warn_clock.increment_ms(CLOCK_TICK_WARN_MS);
 	if *BOOT_CLOCK.get() > warn_clock {
-		log::warn!(
+		warn!(
 			"BOOT_CLOCK increased {}ms in one tick, something's going on here",
 			BOOT_CLOCK.in_milliseconds() - PREVIOUS_CLOCK_TICK.in_milliseconds()
 		);

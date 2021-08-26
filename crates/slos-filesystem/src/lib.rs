@@ -7,6 +7,9 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+#[macro_use]
+extern crate slos_log;
+
 #[allow(unused_imports)]
 use self::alloc_prelude::*;
 use alloc::prelude::v1 as alloc_prelude;
@@ -102,6 +105,7 @@ impl FilesystemBase {
 			root: Some(UnsafeContainer::new(root)),
 		};
 
+		trace!("mountpoint={:?}", &mountpoint);
 		self.mountpoints.push(UnsafeContainer::new(mountpoint));
 		Ok(())
 	}
@@ -117,11 +121,15 @@ impl FilesystemBase {
 		// find closest parent mountpoint
 		let mut closest: Option<&UnsafeContainer<FilesystemMountpoint>> = None;
 		if path.is_empty() {
-			for fs in self.mountpoints.as_slice().iter() {
+			trace!("empty path, getting first empty root");
+			'ep: for fs in self.mountpoints.as_slice().iter() {
 				if fs.get().path_vec().is_empty() {
+					trace!("fs={:?}", fs);
 					closest = Some(fs);
+					break 'ep;
 				}
 			}
+
 		} else {
 			let xsc = 0usize;
 			for fs in self.mountpoints.as_slice().iter() {
@@ -137,6 +145,7 @@ impl FilesystemBase {
 				}
 
 				if startcount > xsc {
+					trace!("startcount={:?} xsc={:?} fs={:?}", startcount, xsc, fs);
 					closest = Some(fs);
 				}
 			}
@@ -144,6 +153,7 @@ impl FilesystemBase {
 
 		// if none closest, abort
 		if closest.is_none() {
+			trace!("couldn't find a mountpoint close to {:?}", &path);
 			return Err(FsError::FileNotFound);
 		}
 
@@ -160,7 +170,7 @@ impl FilesystemBase {
 			}
 		};
 
-		log::debug!("node_at_path: mountpoint={:?} path_remaining={:?}", mountpoint, path_remaining);
+		trace!("mountpoint={:?} path_remaining={:?}", mountpoint, path_remaining);
 
 		// if remaining path is empty, return the mountpoint itself
 		if path_remaining.is_empty() {
@@ -171,7 +181,7 @@ impl FilesystemBase {
 		}
 
 		// traverse that mountpoint for the node
-		log::error!("traversing mountpoint for a node is not implemented");
+		error!("traversing mountpoint for a node is unimplemented");
 		Err(FsError::Unknown)
 	}
 }

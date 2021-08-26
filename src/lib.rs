@@ -22,6 +22,16 @@ pub mod filesystem;
 pub type KmainPartial = fn() -> Result<(), KernelError>;
 
 lazy_static! {
+	pub static ref KMAIN_INIT_PARTIALS: UnsafeContainer<Vec<KmainPartial>> = {
+		let mut partials = Vec::new();
+
+		// Basic initialization things
+		partials.push(clock::init as KmainPartial);
+		partials.push(filesystem::init as KmainPartial);
+
+		UnsafeContainer::new(partials)
+	};
+
 	pub static ref KMAIN_LOOP_PARTIALS: UnsafeContainer<Vec<KmainPartial>> = {
 		#[allow(unused_mut)]
 		let mut partials = Vec::new();
@@ -57,8 +67,10 @@ pub fn kmain(initial_system: &'static mut dyn SystemHardware) -> Result<(), Kern
 		clock::treat_as_unstable();
 	}
 
-	clock::init()?;
-	filesystem::init()?;
+	// Run init partials
+	for partial in KMAIN_INIT_PARTIALS.get().iter() {
+		(partial)()?;
+	}
 
 	while !current_system().has_requested_return() {
 		current_system().hook_kmain_loop_head();

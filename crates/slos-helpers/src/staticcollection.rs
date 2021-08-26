@@ -3,6 +3,7 @@
 use array_init::array_init;
 use core::default::Default;
 use core::fmt::{self, Debug};
+use core::ops::Deref;
 
 /// Maximum number of entries a [`StaticCollection`] can hold.
 pub const STATIC_COLLECTION_SIZE: usize = 128;
@@ -40,6 +41,13 @@ impl<T: Default> StaticCollection<T> {
 	/// Return a mutable slice of the entries within this collection.
 	pub fn as_mut_slice(&mut self) -> &mut [T] {
 		&mut self.entries[0..self.next_entry]
+	}
+}
+
+impl<T: Default> Deref for StaticCollection<T> {
+	type Target = [T];
+	fn deref<'a>(&'a self) -> &'a [T] {
+		self.as_slice()
 	}
 }
 
@@ -84,6 +92,15 @@ mod tests {
 		container.push("test two");
 
 		assert_eq!(container.as_slice(), &["test one", "test two"]);
+	}
+
+	#[test]
+	fn test_deref() {
+		let mut container: StaticCollection<&'static str> = StaticCollection::new();
+		container.push("test one");
+		container.push("test two");
+
+		assert_eq!(container.deref(), &["test one", "test two"]);
 	}
 
 	#[test]

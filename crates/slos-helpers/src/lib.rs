@@ -8,6 +8,9 @@ extern crate std;
 #[allow(unused_imports)]
 use alloc::prelude::v1 as alloc_prelude;
 
+#[macro_use]
+mod macros;
+
 mod timer;
 pub use self::timer::Timer;
 mod unsafecontainer;

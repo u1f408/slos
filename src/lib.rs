@@ -4,7 +4,7 @@
 #![feature(trait_upcasting)]
 
 extern crate alloc;
-pub use alloc::prelude::v1 as alloc_prelude;
+use alloc::prelude::v1 as alloc_prelude;
 
 #[allow(unused_imports)]
 use crate::alloc_prelude::*;

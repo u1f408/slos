@@ -113,6 +113,13 @@
 <span id="113">113</span>
 <span id="114">114</span>
 <span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
 </pre><pre class="rust">
 <span class="doccomment">//! A fixed-size collection type</span>
 
@@ -121,8 +128,7 @@
 <span class="kw">use</span> <span class="ident">core::fmt</span>::{<span class="self">self</span>, <span class="ident">Debug</span>};
 <span class="kw">use</span> <span class="ident">core::ops::Deref</span>;
 
-<span class="doccomment">/// Maximum number of entries a [`StaticCollection`] can hold.</span>
-<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">STATIC_COLLECTION_SIZE</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">128</span>;
+<span class="kw">const</span> <span class="ident">STATIC_COLLECTION_SIZE</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">128</span>;
 
 <span class="doccomment">/// A fixed-size collection.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">StaticCollection</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Default</span><span class="op">&gt;</span> {
@@ -134,6 +140,9 @@
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Default</span><span class="op">&gt;</span> <span class="ident">StaticCollection</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+	<span class="doccomment">/// Maximum number of entries the collection can hold.</span>
+	<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">MAX_SIZE</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">STATIC_COLLECTION_SIZE</span>;
+
 	<span class="doccomment">/// Create a new empty `StaticCollection`.</span>
 	<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
 		<span class="self">Self</span> {
@@ -142,9 +151,14 @@
 		}
 	}
 
-	<span class="doccomment">/// Add an entry to this collection.</span>
+	<span class="doccomment">/// Returns the number of elements in the collection.</span>
+	<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">len</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
+		<span class="self">self</span>.<span class="ident">next_entry</span>
+	}
+
+	<span class="doccomment">/// Appends an element to the tail end of the collection.</span>
 	<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">push</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">entry</span>: <span class="ident">T</span>) {
-		<span class="macro">assert!</span>(<span class="self">self</span>.<span class="ident">next_entry</span> <span class="op">&lt;</span> <span class="ident">STATIC_COLLECTION_SIZE</span>);
+		<span class="macro">assert!</span>(<span class="self">self</span>.<span class="ident">next_entry</span> <span class="op">&lt;</span> <span class="ident"><span class="self">Self</span>::MAX_SIZE</span>);
 		<span class="self">self</span>.<span class="ident">entries</span>[<span class="self">self</span>.<span class="ident">next_entry</span>] <span class="op">=</span> <span class="ident">entry</span>;
 		<span class="self">self</span>.<span class="ident">next_entry</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
 	}

@@ -131,7 +131,7 @@ impl FilesystemBase {
 			}
 
 		} else {
-			let xsc = 0usize;
+			let mut xsc = 0usize;
 			for fs in self.mountpoints.as_slice().iter() {
 				let pathvec = fs.get().path_vec();
 				let mut startcount = 0usize;
@@ -147,6 +147,7 @@ impl FilesystemBase {
 				if startcount > xsc {
 					trace!("startcount={:?} xsc={:?} fs={:?}", startcount, xsc, fs);
 					closest = Some(fs);
+					xsc = startcount;
 				}
 			}
 		}

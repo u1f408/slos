@@ -4,5 +4,5 @@
 extern crate slos_log;
 
 pub mod hal;
-#[cfg(feature = "repl")]
+pub mod host;
 pub mod repl;

@@ -13,14 +13,12 @@ use slos_filesystem::FsFileHandle;
 
 pub mod null_console;
 
-pub trait SystemConsoleInput: FsFileHandle {}
-pub trait SystemConsoleOutput: FsFileHandle {}
-pub trait SystemConsole {
-	fn console_input(&self) -> &'static mut dyn SystemConsoleInput;
-	fn console_output(&self) -> &'static mut dyn SystemConsoleOutput;
+pub trait SystemConsole: FsFileHandle {
 }
 
-pub trait SystemHardware: SystemConsole {
+pub trait SystemHardware: Send {
+	fn console(&mut self) -> &'static mut dyn SystemConsole;
+
 	/// Has the HAL has requested an immediate kmain return?
 	fn has_requested_return(&self) -> bool;
 }

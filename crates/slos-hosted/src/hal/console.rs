@@ -1,20 +1,17 @@
 use lazy_static::lazy_static;
 use slos_filesystem::{FsError, FsFileHandle};
-use slos_hal::{SystemConsoleInput, SystemConsoleOutput};
+use slos_hal::SystemConsole;
 use slos_helpers::UnsafeContainer;
 use std::io::{self, Read, Write};
 
 lazy_static! {
-	pub static ref CONSOLE_STDIN: UnsafeContainer<ConsoleStdin> =
-		UnsafeContainer::new(ConsoleStdin);
-	pub static ref CONSOLE_STDOUT: UnsafeContainer<ConsoleStdout> =
-		UnsafeContainer::new(ConsoleStdout);
+	pub static ref CONSOLE: UnsafeContainer<Console> = UnsafeContainer::new(Console);
 }
 
-pub struct ConsoleStdin;
-impl SystemConsoleInput for ConsoleStdin {}
-impl FsFileHandle for ConsoleStdin {
-	fn read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError> {
+pub struct Console;
+
+impl FsFileHandle for Console {
+	fn raw_read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError> {
 		if offset != 0 {
 			return Err(FsError::InvalidArgument);
 		}
@@ -28,24 +25,17 @@ impl FsFileHandle for ConsoleStdin {
 		Ok(buffer)
 	}
 
-	fn write(&mut self, _offset: usize, _data: &[u8]) -> Result<(), FsError> {
-		Err(FsError::InvalidArgument)
-	}
-}
-
-pub struct ConsoleStdout;
-impl SystemConsoleOutput for ConsoleStdout {}
-impl FsFileHandle for ConsoleStdout {
-	fn write(&mut self, offset: usize, data: &[u8]) -> Result<(), FsError> {
+	fn raw_write(&mut self, offset: usize, data: &[u8]) -> Result<(), FsError> {
 		if offset != 0 {
 			return Err(FsError::InvalidArgument);
 		}
 
-		io::stdout().write_all(data)?;
+		let mut stdout = io::stdout();
+		stdout.write_all(data)?;
+		stdout.flush()?;
+
 		Ok(())
 	}
-
-	fn read(&mut self, _offset: usize, _length: Option<usize>) -> Result<Vec<u8>, FsError> {
-		Err(FsError::InvalidArgument)
-	}
 }
+
+impl SystemConsole for Console {}

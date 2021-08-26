@@ -5,8 +5,7 @@ use core::default::Default;
 use core::fmt::{self, Debug};
 use core::ops::Deref;
 
-/// Maximum number of entries a [`StaticCollection`] can hold.
-pub const STATIC_COLLECTION_SIZE: usize = 128;
+const STATIC_COLLECTION_SIZE: usize = 128;
 
 /// A fixed-size collection.
 pub struct StaticCollection<T: Default> {
@@ -18,6 +17,9 @@ pub struct StaticCollection<T: Default> {
 }
 
 impl<T: Default> StaticCollection<T> {
+	/// Maximum number of entries the collection can hold.
+	pub const MAX_SIZE: usize = STATIC_COLLECTION_SIZE;
+
 	/// Create a new empty `StaticCollection`.
 	pub fn new() -> Self {
 		Self {
@@ -26,9 +28,14 @@ impl<T: Default> StaticCollection<T> {
 		}
 	}
 
-	/// Add an entry to this collection.
+	/// Returns the number of elements in the collection.
+	pub fn len(&self) -> usize {
+		self.next_entry
+	}
+
+	/// Appends an element to the tail end of the collection.
 	pub fn push(&mut self, entry: T) {
-		assert!(self.next_entry < STATIC_COLLECTION_SIZE);
+		assert!(self.next_entry < Self::MAX_SIZE);
 		self.entries[self.next_entry] = entry;
 		self.next_entry += 1;
 	}

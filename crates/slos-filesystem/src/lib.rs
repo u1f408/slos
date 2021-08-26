@@ -129,7 +129,6 @@ impl FilesystemBase {
 					break 'ep;
 				}
 			}
-
 		} else {
 			let mut xsc = 0usize;
 			for fs in self.mountpoints.as_slice().iter() {
@@ -171,7 +170,11 @@ impl FilesystemBase {
 			}
 		};
 
-		trace!("mountpoint={:?} path_remaining={:?}", mountpoint, path_remaining);
+		trace!(
+			"mountpoint={:?} path_remaining={:?}",
+			mountpoint,
+			path_remaining
+		);
 
 		// if remaining path is empty, return the mountpoint itself
 		if path_remaining.is_empty() {

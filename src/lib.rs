@@ -93,9 +93,6 @@ pub fn kmain(initial_system: &'static mut dyn SystemHardware) -> Result<(), Kern
 		current_system().current_cpu().halt();
 	}
 
-	error!(
-		"returning, was alive for {}s",
-		clock::BOOT_CLOCK.get()
-	);
+	error!("returning, was alive for {}s", clock::BOOT_CLOCK.get());
 	Ok(())
 }

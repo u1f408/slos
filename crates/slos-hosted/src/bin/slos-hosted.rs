@@ -2,13 +2,13 @@
 extern crate slos_log;
 
 use anyhow::{anyhow, Result};
+use log::LevelFilter;
 use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::flag;
 use signal_hook::iterator::{exfiltrator::SignalOnly, SignalsInfo};
 use std::sync::{atomic::AtomicBool, Arc};
 use std::thread::{self, Thread};
 use std::time::Duration;
-use log::LevelFilter;
 
 use slos::kmain;
 use slos_hosted::hal::interrupts::HostedInterrupt;

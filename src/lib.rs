@@ -4,46 +4,51 @@
 #![feature(trait_upcasting)]
 
 extern crate alloc;
-use crate::alloc_prelude::*;
 pub use alloc::prelude::v1 as alloc_prelude;
+
+#[allow(unused_imports)]
+use crate::alloc_prelude::*;
 
 #[macro_use]
 extern crate slos_log;
 
 use lazy_static::lazy_static;
 use slos_hal::SystemHardware;
-use slos_helpers::UnsafeContainer;
+use slos_helpers::{StaticCollection, UnsafeContainer};
 
 mod errors;
 pub use self::errors::*;
 pub mod clock;
 pub mod filesystem;
 
+/// Callback type for [`kmain`] inner functions
 pub type KmainPartial = fn() -> Result<(), KernelError>;
 
 lazy_static! {
-	pub static ref KMAIN_INIT_PARTIALS: UnsafeContainer<Vec<KmainPartial>> = {
-		let mut partials = Vec::new();
+	/// Collection of [`KmainPartial`] callbacks, called before the [`kmain`] loop
+	pub static ref KMAIN_INIT_PARTIALS: StaticCollection<Option<KmainPartial>> = {
+		let mut partials = StaticCollection::new();
 
 		// Basic initialization things
-		partials.push(clock::init as KmainPartial);
-		partials.push(filesystem::init as KmainPartial);
+		partials.push(Some(clock::init as KmainPartial));
+		partials.push(Some(filesystem::init as KmainPartial));
 
 		// Init examples, if enabled by feature
 		#[cfg(feature = "init_examples")]
 		{
 			log::warn!("KMAIN_INIT_PARTIALS: init_examples feature enabled");
-			partials.push(filesystem::init_examples_console_write as KmainPartial);
+			partials.push(Some(filesystem::init_examples_console_write as KmainPartial));
 		}
 
-		UnsafeContainer::new(partials)
+		partials
 	};
 
-	pub static ref KMAIN_LOOP_PARTIALS: UnsafeContainer<Vec<KmainPartial>> = {
+	/// Collection of [`KmainPartial`] callbacks, called each iteration of the [`kmain`] loop
+	pub static ref KMAIN_LOOP_PARTIALS: StaticCollection<Option<KmainPartial>> = {
 		#[allow(unused_mut)]
-		let mut partials = Vec::new();
+		let mut partials = StaticCollection::new();
 
-		UnsafeContainer::new(partials)
+		partials
 	};
 }
 
@@ -77,16 +82,21 @@ pub fn kmain(initial_system: &'static mut dyn SystemHardware) -> Result<(), Kern
 	}
 
 	// Run init partials
-	for partial in KMAIN_INIT_PARTIALS.get().iter() {
-		(partial)()?;
+	for partial in KMAIN_INIT_PARTIALS.as_slice().iter() {
+		if let Some(partial) = partial {
+			(partial)()?;
+		}
 	}
 
 	while !current_system().has_requested_return() {
 		current_system().hook_kmain_loop_head();
 
 		// Run loop partials
-		for partial in KMAIN_LOOP_PARTIALS.get().iter() {
-			(partial)()?;
+		for partial in KMAIN_LOOP_PARTIALS.as_slice().iter() {
+			if let Some(partial) = partial {
+				(partial)()?;
+			}
+
 			current_system().hook_kmain_loop_inner_part();
 		}
 

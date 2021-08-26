@@ -5,6 +5,7 @@ edition = "2021"
 name = "slos"
 version = "0.0.1-dev.1"
 license = "BSD-2-Clause-Patent"
+resolver = "2"
 
 [features]
 default = [ ]

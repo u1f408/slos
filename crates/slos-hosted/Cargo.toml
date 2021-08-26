@@ -5,6 +5,9 @@ edition = "2021"
 name = "slos-hosted"
 version = "0.0.1-dev.1"
 license = "BSD-2-Clause-Patent"
+resolver = "2"
+default-run = "slos-hosted"
+autobins = false
 
 [features]
 init_examples = [ "slos/init_examples" ] 

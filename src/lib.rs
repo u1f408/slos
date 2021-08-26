@@ -64,9 +64,11 @@ pub fn kmain(initial_system: &'static mut dyn SystemHardware) -> Result<(), Kern
 	}
 
 	log::info!(
-		"Hello from {} (system: {})",
-		concat!(env!("CARGO_PKG_NAME"), " v", env!("CARGO_PKG_VERSION")),
+		"Hello from {} v{}, on system {}, with features {:?}",
+		env!("CARGO_PKG_NAME"),
+		env!("CARGO_PKG_VERSION"),
 		current_system().system_name(),
+		env!("SLOS_FEATURES"),
 	);
 
 	if let Some((virt_type, _)) = current_system().virtualization() {

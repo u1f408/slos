@@ -1,1 +1,1 @@
-initSidebarItems({"constant":[["PATH_SEPARATOR",""]],"fn":[["join",""],["normalize",""],["split",""]]});
+initSidebarItems({"constant":[["PATH_SEPARATOR","Path separator character"]],"fn":[["join","Join a slice of path segments into a usable path"],["normalize","Normalize a given path"],["split","Split a path into it’s segments"]]});

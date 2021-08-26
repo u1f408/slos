@@ -22,7 +22,13 @@
 <span id="22">22</span>
 <span id="23">23</span>
 <span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
 </pre><pre class="rust">
+<span class="doccomment">//! Null console implementation</span>
+
 <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::alloc_prelude</span>::<span class="kw-2">*</span>;
 
 <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::SystemConsole</span>;
@@ -31,9 +37,11 @@
 <span class="kw">use</span> <span class="ident">slos_helpers::UnsafeContainer</span>;
 
 <span class="macro">lazy_static!</span> {
+	<span class="doccomment">/// Global instance of the [`NullConsole`]</span>
 	<span class="kw">pub</span> <span class="kw">static</span> <span class="kw-2">ref</span> <span class="ident">NULL_CONSOLE</span>: <span class="ident">UnsafeContainer</span><span class="op">&lt;</span><span class="ident">NullConsole</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">UnsafeContainer::new</span>(<span class="ident">NullConsole</span>);
 }
 
+<span class="doccomment">/// A [`SystemConsole`] implementation that ignores read &amp; write operations</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">NullConsole</span>;
 
 <span class="kw">impl</span> <span class="ident">FsFileHandle</span> <span class="kw">for</span> <span class="ident">NullConsole</span> {

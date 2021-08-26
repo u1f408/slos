@@ -46,5 +46,5 @@ macro_rules! trace {
 macro_rules! __log_target {
 	() => {
 		module_path!()
-	}
+	};
 }

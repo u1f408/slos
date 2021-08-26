@@ -1,6 +1,6 @@
 /// Get the name of the current function as a `&'static str`.
 ///
-/// Gently lifted from https://stackoverflow.com/a/63904992
+/// Gently lifted from <https://stackoverflow.com/a/63904992>
 #[macro_export]
 macro_rules! function {
 	() => {{

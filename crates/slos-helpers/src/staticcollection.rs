@@ -36,6 +36,11 @@ impl<T: Default> StaticCollection<T> {
 	pub fn as_slice(&self) -> &[T] {
 		&self.entries[0..self.next_entry]
 	}
+
+	/// Return a mutable slice of the entries within this collection.
+	pub fn as_mut_slice(&mut self) -> &mut [T] {
+		&mut self.entries[0..self.next_entry]
+	}
 }
 
 impl<T: Default> Default for StaticCollection<T> {
@@ -58,6 +63,7 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
+	#[allow(unused_imports)]
 	use alloc::prelude::v1::*;
 
 	#[test]

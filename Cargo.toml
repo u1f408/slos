@@ -8,6 +8,7 @@ license = "BSD-2-Clause-Patent"
 resolver = "2"
 
 [features]
+init_examples = [ ]
 default = [ ]
 
 [dependencies]

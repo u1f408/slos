@@ -29,6 +29,13 @@ lazy_static! {
 		partials.push(clock::init as KmainPartial);
 		partials.push(filesystem::init as KmainPartial);
 
+		// Init examples, if enabled by feature
+		#[cfg(feature = "init_examples")]
+		{
+			log::warn!("KMAIN_INIT_PARTIALS: init_examples feature enabled");
+			partials.push(filesystem::init_examples_console_write as KmainPartial);
+		}
+
 		UnsafeContainer::new(partials)
 	};
 

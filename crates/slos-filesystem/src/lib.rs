@@ -132,6 +132,11 @@ impl FilesystemMountpoint {
 	/// This function takes care of resolving the interned strings that make
 	/// up the `path` field of this structure, but no post-conversion path
 	/// normalization is performed before returning.
+	///
+	/// If you're planning to use the path for anything other than passing straight
+	/// back into [`FilesystemBase`], unless you _really_ know what you're doing,
+	/// please use the [`path_string`][FilesystemMountpoint::path_string] method
+	/// instead.
 	pub fn path_vec(&self) -> Vec<&'static str> {
 		self.path
 			.as_slice()
@@ -139,6 +144,19 @@ impl FilesystemMountpoint {
 			.map(|x| x.unwrap_or(INTERNED.get().get_or_intern("[unknown]")))
 			.map(|x| INTERNED.resolve(&x))
 			.collect::<Vec<&str>>()
+	}
+
+	/// Get the absolute path to this mountpoint as a String
+	///
+	/// This function performs path normalization, so the returned path is safe
+	/// to use in non-internal methods.
+	pub fn path_string(&self) -> String {
+		let segs = self.path_vec()
+			.iter()
+			.map(|x| String::from(*x))
+			.collect::<Vec<String>>();
+
+		path::join(&segs)
 	}
 }
 

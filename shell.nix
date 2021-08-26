@@ -1,10 +1,17 @@
 let
   sources = import ./nix/sources.nix;
-  rust = import ./nix/rust.nix { inherit sources; };
-  pkgs = import sources.nixpkgs { };
+  pkgs = import sources.nixpkgs { 
+    overlays = [
+      (import sources.nixpkgs-mozilla)
+      (import ./nix/rust-overlay.nix)
+    ];
+  };
+
+  inherit (pkgs) lib;
 
 in pkgs.mkShell {
-  buildInputs = [
-    rust
+  buildInputs = with pkgs; [
+    rust-nightly-bin
+    cargo-watch
   ];
 }

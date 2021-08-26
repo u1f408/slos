@@ -9,3 +9,7 @@ indent_style = tab
 [*.{toml,json,yml,yaml}]
 indent_size = 4
 indent_style = space
+
+[*.nix]
+indent_size = 2
+indent_style = space

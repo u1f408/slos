@@ -1,22 +1,79 @@
 #![no_std]
+#![allow(incomplete_features)]
+#![feature(alloc_prelude)]
+#![feature(trait_upcasting)]
+
+extern crate alloc;
+use crate::alloc_prelude::*;
+pub use alloc::prelude::v1 as alloc_prelude;
+
+use lazy_static::lazy_static;
 
 use slos_hal::SystemHardware;
+use slos_helpers::UnsafeContainer;
 
 mod errors;
 pub use self::errors::*;
+pub mod clock;
+pub mod filesystem;
 
-pub fn kmain(system: &'static mut dyn SystemHardware) -> Result<(), KernelError> {
-	log::debug!("kmain entry");
+pub type KmainPartial = fn() -> Result<(), KernelError>;
 
-	system
-		.console_output()
-		.write(0, b"Hello, world!\n")
-		.or(Err(KernelError::Unknown))?;
+lazy_static! {
+	pub static ref KMAIN_PARTIALS: UnsafeContainer<Vec<Box<KmainPartial>>> = {
+		#[allow(unused_mut)]
+		let mut partials = Vec::new();
 
-	while !system.has_requested_return() {
-		// Do something
+		UnsafeContainer::new(partials)
+	};
+}
+
+pub static mut SYSTEM: Option<UnsafeContainer<&'static mut dyn SystemHardware>> = None;
+pub fn current_system() -> &'static mut dyn SystemHardware {
+	unsafe {
+		if SYSTEM.is_none() {
+			panic!("slos::SYSTEM has not been initialized");
+		}
+
+		&mut **SYSTEM.as_ref().unwrap().get()
+	}
+}
+
+pub fn kmain(initial_system: &'static mut dyn SystemHardware) -> Result<(), KernelError> {
+	unsafe {
+		SYSTEM = Some(UnsafeContainer::new(initial_system));
 	}
 
-	log::debug!("kmain returning!");
+	log::info!(
+		"Hello from {} (system: {})",
+		concat!(env!("CARGO_PKG_NAME"), " v", env!("CARGO_PKG_VERSION")),
+		current_system().system_name(),
+	);
+
+	if let Some((virt_type, _)) = current_system().virtualization() {
+		log::info!("system is virtualized: {}", virt_type);
+		clock::treat_as_unstable();
+	}
+
+	clock::init()?;
+	filesystem::init()?;
+
+	while !current_system().has_requested_return() {
+		current_system().hook_kmain_loop_head();
+
+		for partial in KMAIN_PARTIALS.get().iter() {
+			(partial)()?;
+			current_system().hook_kmain_loop_inner_part();
+		}
+
+		// Enable interrupts and then halt
+		current_system().current_cpu().interrupts_enable();
+		current_system().current_cpu().halt();
+	}
+
+	log::debug!(
+		"kmain returning, was alive for {}s",
+		clock::BOOT_CLOCK.get()
+	);
 	Ok(())
 }

@@ -1,3 +1,5 @@
+//! Null console implementation
+
 use crate::alloc_prelude::*;
 
 use crate::SystemConsole;
@@ -6,9 +8,11 @@ use slos_filesystem::{FsError, FsFileHandle};
 use slos_helpers::UnsafeContainer;
 
 lazy_static! {
+	/// Global instance of the [`NullConsole`]
 	pub static ref NULL_CONSOLE: UnsafeContainer<NullConsole> = UnsafeContainer::new(NullConsole);
 }
 
+/// A [`SystemConsole`] implementation that ignores read & write operations
 pub struct NullConsole;
 
 impl FsFileHandle for NullConsole {

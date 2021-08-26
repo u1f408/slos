@@ -32,7 +32,7 @@ pub trait FsWriteDir {
 	fn touch(&mut self, name: &str) -> Result<&mut (dyn FsNode), FsError>;
 }
 
-pub trait FsRoot: FsNode + FsReadDir + FsWriteDir + Debug {}
+pub trait FsRoot: Send + FsNode + FsReadDir + FsWriteDir + Debug {}
 
 pub trait FsNode {
 	fn mount(&self) -> Option<&dyn FsRoot>;
@@ -50,8 +50,8 @@ pub trait FsFile: FsNode {
 }
 
 pub trait FsFileHandle {
-	fn read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError>;
-	fn write(&mut self, offset: usize, data: &[u8]) -> Result<(), FsError>;
+	fn raw_read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError>;
+	fn raw_write(&mut self, offset: usize, data: &[u8]) -> Result<(), FsError>;
 }
 
 #[derive(Default)]
@@ -79,6 +79,7 @@ impl Debug for FilesystemMountpoint {
 	}
 }
 
+#[derive(Debug)]
 pub struct FilesystemBase {
 	pub mountpoints: StaticCollection<UnsafeContainer<FilesystemMountpoint>>,
 }
@@ -112,9 +113,6 @@ impl FilesystemBase {
 				.map(|x| String::from(*x))
 				.collect::<Vec<String>>(),
 		));
-
-		#[cfg(feature = "std")]
-		std::dbg!(&path);
 
 		// find closest parent mountpoint
 		let mut closest: Option<&UnsafeContainer<FilesystemMountpoint>> = None;
@@ -161,8 +159,8 @@ impl FilesystemBase {
 				r.to_vec()
 			}
 		};
-		#[cfg(feature = "std")]
-		std::dbg!(&path_remaining);
+
+		log::debug!("node_at_path: mountpoint={:?} path_remaining={:?}", mountpoint, path_remaining);
 
 		// if remaining path is empty, return the mountpoint itself
 		if path_remaining.is_empty() {
@@ -173,6 +171,7 @@ impl FilesystemBase {
 		}
 
 		// traverse that mountpoint for the node
+		log::error!("traversing mountpoint for a node is not implemented");
 		Err(FsError::Unknown)
 	}
 }

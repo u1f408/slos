@@ -129,7 +129,7 @@ impl FsFile for SimpleMemoryFsFile {
 }
 
 impl FsFileHandle for SimpleMemoryFsFile {
-	fn read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError> {
+	fn raw_read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError> {
 		if offset > self.content.len() {
 			return Err(FsError::EndOfFile);
 		}
@@ -148,7 +148,7 @@ impl FsFileHandle for SimpleMemoryFsFile {
 		return Ok(Vec::from(&self.content[offset..(offset + final_length)]));
 	}
 
-	fn write(&mut self, offset: usize, data: &[u8]) -> Result<(), FsError> {
+	fn raw_write(&mut self, offset: usize, data: &[u8]) -> Result<(), FsError> {
 		if (offset + data.len()) > self.content.len() {
 			for _ in self.content.len()..(offset + data.len()) {
 				self.content.push(0);

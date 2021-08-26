@@ -88,7 +88,9 @@ pub fn cmd_file_read(context: &mut Context, args: &[String]) -> Result<()> {
 		.context("no node with that name")?;
 	let filenode = node.try_file().context("failed to FsNode.try_file")?;
 	let filehandle = filenode.open().context("failed to open file")?;
-	let content = filehandle.read(0, None).context("failed to read file")?;
+	let content = filehandle
+		.raw_read(0, None)
+		.context("failed to read file")?;
 
 	println!("[bytes] {:?}", content);
 	if let Ok(s) = String::from_utf8(content.to_vec()) {
@@ -124,7 +126,7 @@ pub fn cmd_file_write_test(context: &mut Context, args: &[String]) -> Result<()>
 	let filenode = filenode.try_file().context("failed to FsNode.try_file")?;
 	let filehandle = filenode.open().context("failed to open file")?;
 	filehandle
-		.write(0, b"hello world!")
+		.raw_write(0, b"hello world!")
 		.context("failed to write to file")?;
 
 	Ok(())

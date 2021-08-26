@@ -402,6 +402,7 @@ dependencies = [
  "displaydoc",
  "lasso",
  "lazy_static",
+ "log",
  "slos-helpers",
  "tinyvec",
 ]

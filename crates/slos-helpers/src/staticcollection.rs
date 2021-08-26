@@ -49,6 +49,17 @@ impl<T: Default> Default for StaticCollection<T> {
 	}
 }
 
+impl<T: Default> FromIterator<T> for StaticCollection<T> {
+    fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
+        let mut c = Self::new();
+        for i in iter {
+            c.push(i);
+        }
+
+        c
+    }
+}
+
 impl<T: Default> Debug for StaticCollection<T>
 where
 	T: Debug,
@@ -73,5 +84,15 @@ mod tests {
 		container.push("test two");
 
 		assert_eq!(container.as_slice(), &["test one", "test two"]);
+	}
+
+	#[test]
+	fn test_from_iterator() {
+		let mut container: Vec<&'static str> = Vec::new();
+		container.push("test one");
+		container.push("test two");
+
+		let c = container.iter().map(|x| *x).collect::<StaticCollection<&'static str>>();
+		assert_eq!(c.as_slice(), &["test one", "test two"]);
 	}
 }

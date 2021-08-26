@@ -1,12 +1,14 @@
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! log {
 	($lvl:expr, $fmt:expr) => ($crate::logcrate::log!(
+		target: __log_target!(),
 		$lvl,
 		core::concat!("{}: ", $fmt),
 		slos_helpers::function!()
 	));
 
 	($lvl:expr, $fmt:expr, $($arg:tt)+) => ($crate::logcrate::log!(
+		target: __log_target!(),
 		$lvl,
 		core::concat!("{}: ", $fmt),
 		slos_helpers::function!(),
@@ -37,4 +39,12 @@ macro_rules! debug {
 #[macro_export(local_inner_macros)]
 macro_rules! trace {
 	($($arg:tt)+) => (log!($crate::logcrate::Level::Trace, $($arg)+))
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __log_target {
+	() => {
+		module_path!()
+	}
 }

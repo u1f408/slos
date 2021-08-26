@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["FsError",""],["MountError",""]],"mod":[["memory",""],["path",""]],"struct":[["FilesystemBase",""],["FilesystemMountpoint",""]],"trait":[["FsDirectory",""],["FsFile",""],["FsFileHandle",""],["FsNode",""],["FsReadDir",""],["FsRoot",""],["FsWriteDir",""]]});

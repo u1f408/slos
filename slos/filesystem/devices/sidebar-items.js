@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["system_devices","Return a populated [`SystemDeviceCollection`]"]],"struct":[["SystemDeviceCollection","Collection for core system device nodes to be presented to the filesystem"],["SystemDeviceFile","A system device node to be presented to the filesystem"]]});

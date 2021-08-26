@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["console","Forwarding to host stdin/stdout"],["interrupts","Virtual interrupts"]],"struct":[["HostedSystem","Hosted “hardware” abstraction layer implementation"],["SYSTEM","Global instance of the [`HostedSystem`]"]]});

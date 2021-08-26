@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["cmd_echo","Echo the given arguments back to the console"]]});

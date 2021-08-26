@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["fopen","Open a file somewhere on the filesystem, returning a handle"],["init","Initialize the filesystem handlers"]],"mod":[["devices","Filesystem device node helpers"]],"struct":[["FSBASE","Filesystem base used by the kernel"]]});

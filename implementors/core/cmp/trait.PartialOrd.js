@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["slos_helpers"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html\" title=\"trait core::cmp::PartialOrd\">PartialOrd</a>&lt;<a class=\"struct\" href=\"slos_helpers/struct.Timer.html\" title=\"struct slos_helpers::Timer\">Timer</a>&gt; for <a class=\"struct\" href=\"slos_helpers/struct.Timer.html\" title=\"struct slos_helpers::Timer\">Timer</a>","synthetic":false,"types":["slos_helpers::timer::Timer"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

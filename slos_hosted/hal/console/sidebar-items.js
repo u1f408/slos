@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CONSOLE","Global [`Console`] instance"],["Console","Hosted [`SystemConsole`] implementation"]]});

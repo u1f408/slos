@@ -58,6 +58,25 @@ pub fn kmain(initial_system: &'static mut dyn SystemHardware) -> Result<(), Kern
 	clock::init()?;
 	filesystem::init()?;
 
+	// TODO: remove this
+	{
+		log::warn!("Trying to write to the console via the filesystem, here goes nothing!");
+		let fsbase = crate::filesystem::FSBASE.get();
+		if let Ok(devnode) = fsbase.node_at_path(&["sys", "dev"]) {
+			if let Some(devdir) = devnode.try_directory() {
+				if let Ok(mut devices) = devdir.readdir() {
+					if let Some(consolenode) = devices.iter_mut().filter(|x| x.name() == "console").next() {
+						if let Some(consolefile) = consolenode.try_file() {
+							if let Ok(consolehandle) = consolefile.open() {
+								let _ = consolehandle.raw_write(0, b"hello via the filesystem!\n");
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	while !current_system().has_requested_return() {
 		current_system().hook_kmain_loop_head();
 

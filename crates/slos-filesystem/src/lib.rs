@@ -19,6 +19,7 @@ use lasso::{Rodeo, Spur};
 use slos_helpers::{StaticCollection, UnsafeContainer};
 
 lazy_static::lazy_static! {
+	/// String interner used for path segments
 	static ref INTERNED: UnsafeContainer<Rodeo> = UnsafeContainer::new(Rodeo::new());
 }
 
@@ -27,43 +28,110 @@ pub use self::errors::*;
 pub mod memory;
 pub mod path;
 
+/// Directory read functions
 pub trait FsReadDir {
+	/// Return an [`FsNode`] reference for each node in this directory
 	fn readdir(&mut self) -> Result<Vec<&mut (dyn FsNode)>, FsError>;
 }
 
+/// Directory write functions
 pub trait FsWriteDir {
+	/// Create a new empty file in this directory
 	fn touch(&mut self, name: &str) -> Result<&mut (dyn FsNode), FsError>;
 }
 
+/// Mountable filesystem root
 pub trait FsRoot: Send + FsNode + FsReadDir + FsWriteDir + Debug {}
 
+/// Filesystem node
 pub trait FsNode {
+	/// Try to get the root filesystem this node belongs to
 	fn mount(&self) -> Option<&dyn FsRoot>;
+
+	/// Get the inode value for this node
 	fn inode(&self) -> usize;
+
+	/// Get the filename of this node
 	fn name(&self) -> &str;
+
+	/// Get the permissions of this node
 	fn permissions(&self) -> u16;
+
+	/// Try to get this node as a [`FsDirectory`] trait object reference
+	///
+	/// Will always return [`None`][Option::None] if this node is a file.
 	fn try_directory(&mut self) -> Option<&mut (dyn FsDirectory)>;
+
+	/// Try to get this node as a [`FsFile`] trait object reference
+	///
+	/// Will always return [`None`][Option::None] if this node is a directory.
 	fn try_file(&mut self) -> Option<&mut (dyn FsFile)>;
 }
 
+/// A directory on a filesystem
 pub trait FsDirectory: FsNode + FsReadDir + FsWriteDir {}
 
+/// A file on a filesystem
 pub trait FsFile: FsNode {
 	fn open(&mut self) -> Result<&mut (dyn FsFileHandle), FsError>;
 }
 
+/// Read/write handle to a [`FsFile`]
 pub trait FsFileHandle {
+	/// Try to read from the file
+	///
+	/// Attempts to read `length` bytes from the `offset` into the file.
+	/// If `length` is [`None`][Option::None], read from `offset` to the
+	/// end of the file.
+	///
+	/// If the file is write-only, this should return [`FsError::InvalidArgument`].
+	///
+	/// If the file is only able to be read from as a stream (for example,
+	/// character devices such as terminals), in the case where `offset` is
+	/// non-zero and/or `length` is not [`None`][Option::None], this should
+	/// return [`FsError::InvalidArgument`].
 	fn raw_read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError>;
+
+	/// Try to write to the file
+	///
+	/// Attempts to write the `data` to the `offset` into the file, replacing
+	/// any existing content.
+	///
+	/// It is implementation-dependent whether this function will truncate the
+	/// supplied data if it is too large to fit in the file (for example, block
+	/// devices), however implementations **should** try to allocate more space
+	/// on the physical filesystem and extend the file to fit the entire data.
+	///
+	/// If the file is read-only, this should return [`FsError::InvalidArgument`].
+	///
+	/// If the file is only able to be written to as a stream (for example,
+	/// character devices such as terminals), in the case where `offset` is
+	/// non-zero, this should return [`FsError::InvalidArgument`].
 	fn raw_write(&mut self, offset: usize, data: &[u8]) -> Result<(), FsError>;
 }
 
+/// Container for filesystem mountpoint roots
+///
+/// This mostly exists as an implementation detail of [`FilesystemBase`].
 #[derive(Default)]
 pub struct FilesystemMountpoint {
+	/// Segments of the path making up the mountpoint
+	///
+	/// Paths are stored internally as interned strings, see the
+	/// [`path_string`][FilesystemMountpoint::path_string] method to get the
+	/// path in a format that can be used outside of this module.
 	pub path: StaticCollection<Option<Spur>>,
+
+	/// Filesystem root, as a contained [`FsRoot`] trait object
 	pub root: Option<UnsafeContainer<Box<dyn FsRoot>>>,
 }
 
 impl FilesystemMountpoint {
+	/// Get the absolute path to this mountpoint
+	///
+	/// This function takes care of resolving the interned strings that make
+	/// up the `path` field of this structure, but no post-conversion path
+	/// normalization is performed before returning.
 	pub fn path_vec(&self) -> Vec<&'static str> {
 		self.path
 			.as_slice()
@@ -82,18 +150,22 @@ impl Debug for FilesystemMountpoint {
 	}
 }
 
+/// Base structure for mounting filesystems to
 #[derive(Debug)]
 pub struct FilesystemBase {
+	/// Collection of mounted filesystems
 	pub mountpoints: StaticCollection<UnsafeContainer<FilesystemMountpoint>>,
 }
 
 impl FilesystemBase {
+	/// Create a new empty `FilesystemBase` instance.
 	pub fn new() -> Self {
 		Self {
 			mountpoints: StaticCollection::new(),
 		}
 	}
 
+	/// Mount a filesystem root at `path`.
 	pub fn mount(&mut self, path: &[&str], root: Box<dyn FsRoot>) -> Result<(), MountError> {
 		let mut path_segments: StaticCollection<Option<Spur>> = StaticCollection::new();
 		for seg in path.into_iter() {
@@ -110,6 +182,21 @@ impl FilesystemBase {
 		Ok(())
 	}
 
+	/// Return an [`FsNode`] for the given `path`, if one exists.
+	///
+	/// If the given `path` is exactly the root of a mounted filesystem, returns
+	/// the filesystem root object, casted to an [`FsNode`] (so you can treat it
+	/// as a normal directory).
+	///
+	/// If the given `path` is not the root of a mounted filesystem, traverses
+	/// the parent filesystem of the path to find the node at the path within
+	/// that filesystem.
+	///
+	/// Returns [`FsError::FileNotFound`] if a node could not be found at the path,
+	/// or [`FsError::FilesystemRootError`] if the parent filesystem of the path
+	/// was not able to be cast to an [`FsNode`] (which would only ever happen if
+	/// mounting the filesystem failed spectactularly, or the mountpoint table had
+	/// been messed with).
 	pub fn node_at_path<'a>(&mut self, path: &[&str]) -> Result<&'a mut (dyn FsNode), FsError> {
 		let path = crate::path::split(&crate::path::join(
 			&path

@@ -1,7 +1,11 @@
+//! Path normalization and manipulation
+
 use crate::alloc_prelude::*;
 
+/// Path separator character
 pub const PATH_SEPARATOR: char = '/';
 
+/// Normalize a given path
 pub fn normalize(path: &str) -> String {
 	let mut portions: Vec<String> = Vec::new();
 	let mut chars = path.chars().collect::<Vec<char>>();
@@ -52,6 +56,7 @@ pub fn normalize(path: &str) -> String {
 	String::from(PATH_SEPARATOR) + &portions.join(&String::from(PATH_SEPARATOR))
 }
 
+/// Split a path into it's segments
 pub fn split(path: &str) -> Vec<String> {
 	normalize(path)
 		.split(PATH_SEPARATOR)
@@ -60,6 +65,7 @@ pub fn split(path: &str) -> Vec<String> {
 		.collect()
 }
 
+/// Join a slice of path segments into a usable path
 pub fn join(parts: &[String]) -> String {
 	let sep = String::from(PATH_SEPARATOR);
 	let npath = parts.join(&sep) + &sep;

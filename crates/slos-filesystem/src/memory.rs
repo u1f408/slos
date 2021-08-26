@@ -1,3 +1,5 @@
+//! SimpleMemoryFs - an in-memory single-directory read/write filesystem
+
 use crate::alloc_prelude::*;
 use crate::{FsDirectory, FsError, FsFile, FsFileHandle, FsNode, FsReadDir, FsRoot, FsWriteDir};
 

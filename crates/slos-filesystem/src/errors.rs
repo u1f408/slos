@@ -1,5 +1,6 @@
 use displaydoc::Display as DisplayDoc;
 
+/// File and directory errors
 #[derive(DisplayDoc, Debug)]
 pub enum FsError {
 	/// Permission denied
@@ -41,6 +42,7 @@ impl From<std::io::Error> for FsError {
 #[cfg(feature = "std")]
 impl std::error::Error for FsError {}
 
+/// Mountpoint errors
 #[derive(DisplayDoc, Debug)]
 pub enum MountError {
 	/// Permission denied

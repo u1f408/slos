@@ -110,7 +110,7 @@ impl FilesystemBase {
 		Ok(())
 	}
 
-	pub fn node_at_path(&mut self, path: &[&str]) -> Result<&mut (dyn FsNode), FsError> {
+	pub fn node_at_path<'a>(&mut self, path: &[&str]) -> Result<&'a mut (dyn FsNode), FsError> {
 		let path = crate::path::split(&crate::path::join(
 			&path
 				.iter()
@@ -176,16 +176,51 @@ impl FilesystemBase {
 			path_remaining
 		);
 
-		// if remaining path is empty, return the mountpoint itself
-		if path_remaining.is_empty() {
-			return match &mountpoint.get().root {
-				Some(root) => Ok(root.get().as_mut() as &mut dyn FsNode),
-				None => Err(FsError::FilesystemRootError),
-			};
+		// get the mountpoint as an FsNode
+		let mount_root = match &mountpoint.get().root {
+			Some(root) => root.get().as_mut() as &mut dyn FsNode,
+
+			None => {
+				return Err(FsError::FilesystemRootError);
+			}
+		};
+
+		// reverse the list of path segments, to allow us to pop from this list
+		let mut rev_segments = {
+			let mut rev_segments = path_remaining.clone();
+			rev_segments.reverse();
+			rev_segments
+		};
+
+		// traverse the mountpoint for the node
+		//
+		// this will just fall through if there's nothing in `path_remaining`
+		// so we'll automatically return the mountpoint root without having to
+		// explicitly check for that
+		let current_node: UnsafeContainer<&mut dyn FsNode> = UnsafeContainer::new(mount_root);
+		'fsearch: while let Some(path_seg) = rev_segments.pop() {
+			if let Some(dir) = current_node.get().try_directory() {
+				for new in dir.readdir()? {
+					if new.name() == path_seg {
+						trace!("found next node, name={:?}", path_seg);
+						current_node.replace(new);
+						continue 'fsearch;
+					}
+				}
+			}
+
+			// if we have no path segments left at this point, we have our node
+			if rev_segments.is_empty() {
+				trace!("we've got our node, breaking 'fsearch");
+				break 'fsearch;
+			}
+
+			// but if we've fallen through to here, and we have path segments left,
+			// the path segment we need was not found in the current directory node,
+			// so return a FileNotFound
+			return Err(FsError::FileNotFound);
 		}
 
-		// traverse that mountpoint for the node
-		error!("traversing mountpoint for a node is unimplemented");
-		Err(FsError::Unknown)
+		Ok(current_node.into_inner())
 	}
 }

@@ -1,3 +1,8 @@
+//! Hosted slOS kernel
+//!
+//! This module contains the functions necessary to start the slOS kernel as an
+//! application on a host *NIX system.
+
 use anyhow::{anyhow, Result};
 use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::flag;
@@ -11,16 +16,40 @@ use slos::kmain;
 
 pub mod interrupts;
 
-pub fn init(_kargs: String, _rootfs: Option<PathBuf>) -> Result<()> {
+/// Initialize the environment for the hosted kernel
+pub fn init(kargs: String, rootfs: Option<PathBuf>) -> Result<()> {
 	// TODO: this
+
+	let _ = kargs;
+	let _ = rootfs;
+
 	Ok(())
 }
 
+/// Run [`slos::kmain`] in our hosted environment
+///
+/// This function should be spawned in a new thread, the handle of that thread
+/// stored (so we can `join` it at the end of execution), and the thread object
+/// passed to the helper threads that should be spawned after the thread running
+/// this function.
 pub fn hosted_kmain() -> Result<()> {
 	kmain(SYSTEM.get()).or_else(|x| Err(anyhow!("kmain returned an error!? {:#?}", x)))?;
 	Ok(())
 }
 
+/// Start the hosted kernel
+///
+/// Does the following things, in this order:
+///
+/// - Set up signal handling so that a `^C` will attempt to gracefully stop the
+///   running kernel threads
+/// - Start [`hosted_kmain`] in a new thread
+/// - Start helper threads:
+///    - [`interrupts::dispatcher`]
+///    - [`interrupts::clock_tick`]
+/// - Waits for a termination signal
+/// - Joins on the [`hosted_kmain`] thread
+/// - Joins on the helper threads
 pub fn run_kernel() -> Result<()> {
 	let term_now = Arc::new(AtomicBool::new(false));
 	for sig in TERM_SIGNALS {

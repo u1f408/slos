@@ -1,16 +1,20 @@
+//! Debugging REPL for parts of slOS
+
 use anyhow::{bail, Result};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::collections::HashMap;
 
-pub mod context;
+mod context;
 pub use self::context::Context;
 
 pub mod cmd_basics;
 pub mod cmd_filesystem;
 
+/// REPL command callback type, where `T` is the command context
 pub type Callback<T> = fn(&mut T, &[String]) -> Result<()>;
 
+/// Default commands, using [`Context`] as the command context
 pub fn default_cmds() -> HashMap<String, HashMap<String, Box<Callback<Context>>>> {
 	let mut categories = HashMap::new();
 
@@ -59,6 +63,10 @@ pub fn default_cmds() -> HashMap<String, HashMap<String, Box<Callback<Context>>>
 	categories
 }
 
+/// Run the REPL with the given command list
+///
+/// Type parameter `T` is the command context (generally [`Context`]), and
+/// all command callbacks must use the same command context type.
 pub fn run_repl<'a, T>(
 	mut context: T,
 	cmds: HashMap<String, HashMap<String, Box<Callback<T>>>>,

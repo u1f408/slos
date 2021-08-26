@@ -44,8 +44,8 @@ pub fn dispatcher(kmain_thread: Thread) {
 ///
 /// While the hosted system is running (that is, `!SYSTEM.return_next_iter`):
 ///
-/// - Update [`slos::clock::BOOT_CLOCK`] with the real time passed since
-///    the last iteration,
+/// - Update [`struct@slos::clock::BOOT_CLOCK`] with the real time passed
+///   since the last iteration,
 /// - Queue a [`HostedInterrupt::ClockTick`] interrupt,
 /// - Sleep the current thread for ~50ms
 ///

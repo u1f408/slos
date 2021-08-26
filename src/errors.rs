@@ -1,5 +1,6 @@
 use displaydoc::Display as DisplayDoc;
 
+/// Fatal kernel errors
 #[derive(DisplayDoc, Debug)]
 pub enum KernelError {
 	/// Bubbled filesystem mount error

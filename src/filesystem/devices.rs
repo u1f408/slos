@@ -1,3 +1,5 @@
+//! Filesystem device node helpers
+
 use crate::alloc_prelude::*;
 use core::fmt::{self, Debug};
 
@@ -7,6 +9,11 @@ use slos_filesystem::{
 };
 use slos_helpers::{StaticCollection, UnsafeContainer};
 
+/// Return a populated [`SystemDeviceCollection`]
+///
+/// This will populate the following devices:
+///
+/// - `console`: [`slos_hal::SystemConsole`] (inode `0xF3F30001`)
 pub fn system_devices() -> SystemDeviceCollection {
 	let mut collection = SystemDeviceCollection::new();
 
@@ -20,8 +27,23 @@ pub fn system_devices() -> SystemDeviceCollection {
 	collection
 }
 
+/// Collection for core system device nodes to be presented to the filesystem
+///
+/// Any [`None`][Option::None] values in the `devices` collection are ignored.
+///
+/// # Behavior
+///
+/// This always presents as a read-only directory (that is, [`FsWriteDir`]
+/// methods will always return an error of type [`FsError::InvalidArgument`]).
+///
+/// As an [`FsNode`], this will always return somewhat weird values, and as
+/// such should only be used as a direct mountpoint:
+///
+/// - `inode`: `0` (zero)
+/// - `name`: `""` (an empty string)
 #[derive(Debug)]
 pub struct SystemDeviceCollection {
+	/// Devices to present to the filesystem
 	pub devices: StaticCollection<Option<SystemDeviceFile>>,
 }
 
@@ -89,9 +111,15 @@ impl FsRoot for SystemDeviceCollection {}
 unsafe impl Send for SystemDeviceCollection {}
 unsafe impl Sync for SystemDeviceCollection {}
 
+/// A system device node to be presented to the filesystem
 pub struct SystemDeviceFile {
+	/// File name
 	pub name: &'static str,
+
+	/// File inode
 	pub inode: usize,
+
+	/// [`FsFileHandle`] for the device we're pointing to
 	device: UnsafeContainer<&'static mut dyn FsFileHandle>,
 }
 

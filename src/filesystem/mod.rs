@@ -1,3 +1,5 @@
+//! Global filesystem handling
+
 use lazy_static::lazy_static;
 
 use crate::alloc_prelude::*;
@@ -10,10 +12,15 @@ use slos_helpers::UnsafeContainer;
 pub mod devices;
 
 lazy_static! {
+	/// Filesystem base used by the kernel
 	pub static ref FSBASE: UnsafeContainer<FilesystemBase> =
 		UnsafeContainer::new(FilesystemBase::new());
 }
 
+/// Initialize the filesystem handlers
+///
+/// This should be added to the [`KMAIN_INIT_PARTIALS`][struct@crate::KMAIN_INIT_PARTIALS]
+/// list, rather than being called manually.
 pub fn init() -> Result<(), KernelError> {
 	info!("initializing filesystem");
 	let fs = FSBASE.get();
@@ -42,6 +49,7 @@ pub fn fopen<'a>(path: &str) -> Result<&'a mut (dyn FsFileHandle), FsError> {
 }
 
 #[cfg(feature = "init_examples")]
+#[doc(hidden)]
 pub fn init_examples_console_write() -> Result<(), KernelError> {
 	debug!("attempting write to system console via filesystem");
 	if let Ok(fh) = fopen("/sys/dev/console") {

@@ -1,3 +1,5 @@
+//! Forwarding to host stdin/stdout
+
 use lazy_static::lazy_static;
 use slos_filesystem::{FsError, FsFileHandle};
 use slos_hal::SystemConsole;
@@ -5,9 +7,13 @@ use slos_helpers::UnsafeContainer;
 use std::io::{self, Read, Write};
 
 lazy_static! {
+	/// Global [`Console`] instance
 	pub static ref CONSOLE: UnsafeContainer<Console> = UnsafeContainer::new(Console);
 }
 
+/// Hosted [`SystemConsole`] implementation
+///
+/// This just forwards read/write to the host's stdin/stdout.
 pub struct Console;
 
 impl FsFileHandle for Console {

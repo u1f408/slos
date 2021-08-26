@@ -1,3 +1,5 @@
+//! Kernel timekeeping
+
 use lazy_static::lazy_static;
 
 use crate::KernelError;
@@ -8,7 +10,7 @@ use slos_helpers::UnsafeContainer;
 /// Warn if the clock increases more than this time (in milliseconds) in one tick
 pub const CLOCK_TICK_WARN_MS: u32 = 100;
 
-/// If CLOCK_TICK_WARN_COUNT >= this value, set CLOCK_UNSTABLE
+/// If `CLOCK_TICK_WARN_COUNT` >= this value, set `CLOCK_UNSTABLE`
 pub const CLOCK_TICK_WARN_THRESHOLD: usize = 2;
 
 /// Current number of warnings
@@ -18,10 +20,17 @@ pub static mut CLOCK_TICK_WARN_COUNT: usize = 0;
 pub static mut CLOCK_UNSTABLE: bool = false;
 
 lazy_static! {
+	/// Clone of [`BOOT_CLOCK`] at the end of the last [`on_tick`] call
 	static ref PREVIOUS_CLOCK_TICK: UnsafeContainer<Timer> = UnsafeContainer::new(Timer::new());
+
+	/// Time since system boot
 	pub static ref BOOT_CLOCK: UnsafeContainer<Timer> = UnsafeContainer::new(Timer::new());
 }
 
+/// Initialize the system timers
+///
+/// This should be added to the [`KMAIN_INIT_PARTIALS`][struct@crate::KMAIN_INIT_PARTIALS]
+/// list, rather than being called manually.
 pub fn init() -> Result<(), KernelError> {
 	info!("initializing clock");
 	let _boot_clock = BOOT_CLOCK.get();
@@ -31,6 +40,7 @@ pub fn init() -> Result<(), KernelError> {
 	Ok(())
 }
 
+/// Set the system clock as unstable
 pub fn treat_as_unstable() {
 	debug!("clock is being treated as unstable");
 	unsafe {
@@ -38,6 +48,10 @@ pub fn treat_as_unstable() {
 	}
 }
 
+/// Tick the clock
+///
+/// This should be called in the platform timer interrupt handler, after it has
+/// incremented [`struct@BOOT_CLOCK`].
 pub fn on_tick() {
 	// Warn if we've increased more than CLOCK_TICK_WARN
 	let mut warn_clock = PREVIOUS_CLOCK_TICK.get().clone();

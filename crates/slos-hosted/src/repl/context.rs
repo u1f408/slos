@@ -1,6 +1,8 @@
 use slos_filesystem::FilesystemBase;
 
+/// Default command context type
 pub struct Context {
+	/// Filesystem
 	pub fs: FilesystemBase,
 }
 

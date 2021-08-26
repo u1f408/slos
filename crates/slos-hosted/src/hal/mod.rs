@@ -1,3 +1,5 @@
+//! Hosted "hardware" abstraction layer implementation
+
 use lazy_static::lazy_static;
 use std::thread::{self, Thread};
 use std::time::Duration;
@@ -9,15 +11,17 @@ pub mod console;
 pub mod interrupts;
 
 lazy_static! {
+	/// Global instance of the [`HostedSystem`]
 	pub static ref SYSTEM: UnsafeContainer<HostedSystem> = UnsafeContainer::new(Default::default());
 }
 
+/// Hosted "hardware" abstraction layer implementation
 #[derive(Debug)]
 pub struct HostedSystem {
 	/// Whether to make kmain return in its next iteration
 	pub return_next_iter: bool,
 
-	/// Number of pending interrupts
+	/// Queue of pending interrupts
 	pub pending_interrupts: Vec<interrupts::HostedInterrupt>,
 
 	/// Whether interrupts are enabled
@@ -26,12 +30,16 @@ pub struct HostedSystem {
 	/// Whether the hosted machine is halted until the next interrupt
 	pub halted: bool,
 
-	/// kmain std::thread::Thread
+	/// kmain [`std::thread::Thread`]
 	pub kmain_thread: Option<Thread>,
 }
 
 impl HostedSystem {
-	fn park_if_halted(&mut self) {
+	/// If halted, and current thread is kmain, park thread
+	///
+	/// This will also unhalt and unpark if `return_next_iter` has been set.
+	/// Sleeps for ~50ms on each iteration as to reduce host CPU load.
+	pub fn park_if_halted(&mut self) {
 		while self.halted {
 			if let Some(kmain_thread) = &self.kmain_thread {
 				if thread::current().id() == kmain_thread.id() {

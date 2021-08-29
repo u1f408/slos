@@ -1,2 +1,5 @@
 [unstable]
 namespaced-features = true
+
+[build]
+rustdocflags = [ "-Zunstable-options", "--enable-index-page" ]

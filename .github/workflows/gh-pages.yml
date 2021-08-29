@@ -15,10 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: arcnmx/ci/actions/nix/install@master
-      - name: Run "cargo --version && rustc --version"
+      - name: (nix-shell) Run cargo --version && rustc --version
         run: nix-shell --command "cargo --version && rustc --version"
 
-      - name: Run "cargo doc --workspace --no-deps"
+      - name: (nix-shell) Run cargo doc --workspace --no-deps
         run: nix-shell --command "cargo doc --workspace --no-deps"
 
       - name: Deploy

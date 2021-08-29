@@ -15,11 +15,17 @@
 <span id="15">15</span>
 <span id="16">16</span>
 <span id="17">17</span>
+<span id="18">18</span>
+<span id="19">19</span>
+<span id="20">20</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">displaydoc::Display</span> <span class="kw">as</span> <span class="ident">DisplayDoc</span>;
 
 <span class="doccomment">/// Fatal kernel errors</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">DisplayDoc</span>, <span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">KernelError</span> {
+	<span class="doccomment">/// `kmain` called before `init`</span>
+	<span class="ident">KernelUninitialized</span>,
+
 	<span class="doccomment">/// Bubbled filesystem mount error</span>
 	<span class="ident">MountError</span>(<span class="ident">slos_filesystem::MountError</span>),
 

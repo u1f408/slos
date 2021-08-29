@@ -3,6 +3,9 @@ use displaydoc::Display as DisplayDoc;
 /// Fatal kernel errors
 #[derive(DisplayDoc, Debug)]
 pub enum KernelError {
+	/// `kmain` called before `init`
+	KernelUninitialized,
+
 	/// Bubbled filesystem mount error
 	MountError(slos_filesystem::MountError),
 

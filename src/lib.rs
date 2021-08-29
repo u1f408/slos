@@ -56,6 +56,19 @@ lazy_static! {
 #[doc(hidden)]
 pub static mut SYSTEM: Option<UnsafeContainer<&'static mut dyn SystemHardware>> = None;
 
+/// Initializes the system.
+pub fn init(system: &'static mut dyn SystemHardware) -> Result<(), KernelError> {
+	// TODO: pre-kmain init stuff?
+
+	// Store system to SYSTEM
+	unsafe {
+		trace!("system = {:?}", system);
+		SYSTEM = Some(UnsafeContainer::new(system));
+	}
+
+	Ok(())
+}
+
 /// Returns the [`SystemHardware`] implementation for the running system
 ///
 /// Panics if the system has not been initialized.
@@ -70,9 +83,11 @@ pub fn current_system() -> &'static mut dyn SystemHardware {
 }
 
 /// Kernel main function
-pub fn kmain(initial_system: &'static mut dyn SystemHardware) -> Result<(), KernelError> {
+pub fn kmain() -> Result<(), KernelError> {
 	unsafe {
-		SYSTEM = Some(UnsafeContainer::new(initial_system));
+		if SYSTEM.is_none() {
+			return Err(KernelError::KernelUninitialized);
+		}
 	}
 
 	log::info!(

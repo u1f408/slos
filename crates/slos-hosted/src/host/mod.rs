@@ -33,7 +33,7 @@ pub fn init(kargs: String, rootfs: Option<PathBuf>) -> Result<()> {
 /// passed to the helper threads that should be spawned after the thread running
 /// this function.
 pub fn hosted_kmain() -> Result<()> {
-	kmain(SYSTEM.get()).or_else(|x| Err(anyhow!("kmain returned an error!? {:#?}", x)))?;
+	kmain().or_else(|x| Err(anyhow!("kmain returned an error!? {:#?}", x)))?;
 	Ok(())
 }
 
@@ -56,6 +56,9 @@ pub fn run_kernel() -> Result<()> {
 		flag::register_conditional_shutdown(*sig, 1, Arc::clone(&term_now))?;
 		flag::register(*sig, Arc::clone(&term_now))?;
 	}
+
+	debug!("Initializing kernel");
+	slos::init(SYSTEM.get()).or_else(|x| Err(anyhow!("slos::init error {:#?}", x)))?;
 
 	// Start hosted_main
 	debug!("Starting hosted_kmain in a thread");

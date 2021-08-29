@@ -65,14 +65,14 @@ impl<T: Default> Default for StaticCollection<T> {
 }
 
 impl<T: Default> FromIterator<T> for StaticCollection<T> {
-    fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
-        let mut c = Self::new();
-        for i in iter {
-            c.push(i);
-        }
+	fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+		let mut c = Self::new();
+		for i in iter {
+			c.push(i);
+		}
 
-        c
-    }
+		c
+	}
 }
 
 impl<T: Default> Debug for StaticCollection<T>
@@ -116,7 +116,10 @@ mod tests {
 		container.push("test one");
 		container.push("test two");
 
-		let c = container.iter().map(|x| *x).collect::<StaticCollection<&'static str>>();
+		let c = container
+			.iter()
+			.map(|x| *x)
+			.collect::<StaticCollection<&'static str>>();
 		assert_eq!(c.as_slice(), &["test one", "test two"]);
 	}
 }

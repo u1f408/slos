@@ -151,7 +151,8 @@ impl FilesystemMountpoint {
 	/// This function performs path normalization, so the returned path is safe
 	/// to use in non-internal methods.
 	pub fn path_string(&self) -> String {
-		let segs = self.path_vec()
+		let segs = self
+			.path_vec()
 			.iter()
 			.map(|x| String::from(*x))
 			.collect::<Vec<String>>();

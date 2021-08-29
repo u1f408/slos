@@ -11,7 +11,7 @@ use alloc::prelude::v1 as alloc_prelude;
 
 use slos_filesystem::FsFileHandle;
 
-pub mod null_console;
+pub mod null_system;
 
 /// System console
 pub trait SystemConsole: FsFileHandle {}

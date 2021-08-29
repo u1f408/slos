@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["null_console","Null console implementation"]],"trait":[["SystemConsole","System console"],["SystemCpu","System CPU handling"],["SystemHardware","Base system hardware trait"],["SystemKmainHooks","Optional `kmain` hook methods"]]});
+initSidebarItems({"mod":[["null_system","Placeholder no-op HAL implementation"]],"trait":[["SystemConsole","System console"],["SystemCpu","System CPU handling"],["SystemHardware","Base system hardware trait"],["SystemKmainHooks","Optional `kmain` hook methods"]]});

@@ -61,6 +61,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2da1976d75adbe5fbc88130ecd119529cf1cc6a93ae1546d8696ee66f0d21af1"
 
 [[package]]
+name = "byteorder"
+version = "1.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
+
+[[package]]
 name = "cargo_toml"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -380,6 +386,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
 
 [[package]]
+name = "rpak"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d49bdc8fed316ce279cd288446a38badec91d4ac0b10ebfd86d571c3213bcecb"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "rustyline"
 version = "8.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -473,6 +488,7 @@ dependencies = [
  "displaydoc",
  "lasso",
  "lazy_static",
+ "rpak",
  "slos-helpers",
  "slos-log",
  "tinyvec",

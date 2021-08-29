@@ -331,8 +331,6 @@
 <span id="331">331</span>
 <span id="332">332</span>
 <span id="333">333</span>
-<span id="334">334</span>
-<span id="335">335</span>
 </pre><pre class="rust"><code><span class="attribute">#![<span class="ident">no_std</span>]</span>
 <span class="attribute">#![<span class="ident">allow</span>(<span class="ident">incomplete_features</span>)]</span>
 <span class="attribute">#![<span class="ident">feature</span>(<span class="ident">alloc_prelude</span>)]</span>
@@ -360,10 +358,8 @@
 
 <span class="kw">mod</span> <span class="ident">errors</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident"><span class="self">self</span>::errors</span>::<span class="kw-2">*</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">path</span>;
-
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">memory</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">pakfs</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">path</span>;
 
 <span class="doccomment">/// Directory read functions</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">FsReadDir</span> {

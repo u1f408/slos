@@ -12,15 +12,15 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs": {
-        "branch": "nixpkgs-unstable",
+        "branch": "master",
         "description": "Nix Packages collection",
         "homepage": "",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "2457ddc9522b0861649ee5e952fa2e505c1743b7",
-        "sha256": "1cfml116vgmcrcdfccqdqg14ybkh0j5v2pgbpraa4mrp1ls8w488",
+        "rev": "ce77cbef67f6c9d218f99c37bf116389b35ebddd",
+        "sha256": "08nrbzmpl2rf4jcynpn1s8k5by99crk7g0g3kr323bcx17gwx307",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/2457ddc9522b0861649ee5e952fa2e505c1743b7.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/ce77cbef67f6c9d218f99c37bf116389b35ebddd.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs-mozilla": {
@@ -29,10 +29,10 @@
         "homepage": "",
         "owner": "mozilla",
         "repo": "nixpkgs-mozilla",
-        "rev": "b1001ed670666ca4ce1c1b064481f88694315c1d",
-        "sha256": "1hpig8z4pzdwc2vazr6hg7qyxllbgznsaivaigjnmrdszlxz55zz",
+        "rev": "0510159186dd2ef46e5464484fbdf119393afa58",
+        "sha256": "1c6r5ldkh71v6acsfhni7f9sxvi7xrqzshcwd8w0hl2rrqyzi58w",
         "type": "tarball",
-        "url": "https://github.com/mozilla/nixpkgs-mozilla/archive/b1001ed670666ca4ce1c1b064481f88694315c1d.tar.gz",
+        "url": "https://github.com/mozilla/nixpkgs-mozilla/archive/0510159186dd2ef46e5464484fbdf119393afa58.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }

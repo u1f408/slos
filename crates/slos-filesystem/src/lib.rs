@@ -44,7 +44,7 @@ pub trait FsWriteDir {
 pub trait FsRoot: Send + FsNode + FsReadDir + FsWriteDir + Debug {}
 
 /// Filesystem node
-pub trait FsNode {
+pub trait FsNode: Debug {
 	/// Try to get the root filesystem this node belongs to
 	fn mount(&self) -> Option<&dyn FsRoot>;
 

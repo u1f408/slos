@@ -72,16 +72,12 @@ impl<'a> FsReadDir for PakFilesystem<'a> {
 }
 
 impl<'a> FsWriteDir for PakFilesystem<'a> {
-	fn touch(&mut self, _name: &str) -> Result<&mut (dyn FsNode), FsError> {
+	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
 		Err(FsError::InvalidArgument)
 	}
 }
 
 impl<'a> FsNode for PakFilesystem<'a> {
-	fn mount(&self) -> Option<&dyn FsRoot> {
-		Some(self as &dyn FsRoot)
-	}
-
 	fn inode(&self) -> usize {
 		0
 	}
@@ -92,6 +88,10 @@ impl<'a> FsNode for PakFilesystem<'a> {
 
 	fn permissions(&self) -> u16 {
 		0o777
+	}
+
+	fn try_root(&mut self) -> Option<&mut dyn FsRoot> {
+		Some(self as &mut dyn FsRoot)
 	}
 
 	fn try_directory(&mut self) -> Option<&mut (dyn FsDirectory)> {
@@ -142,10 +142,6 @@ impl<'a> PartialEq for PakFilesystemFile<'a> {
 }
 
 impl<'a> FsNode for PakFilesystemFile<'a> {
-	fn mount(&self) -> Option<&dyn FsRoot> {
-		None
-	}
-
 	fn inode(&self) -> usize {
 		self.index.unwrap_or(0)
 	}
@@ -162,7 +158,11 @@ impl<'a> FsNode for PakFilesystemFile<'a> {
 		0o777
 	}
 
-	fn try_directory(&mut self) -> Option<&mut (dyn FsDirectory)> {
+	fn try_root(&mut self) -> Option<&mut dyn FsRoot> {
+		None
+	}
+
+	fn try_directory(&mut self) -> Option<&mut dyn FsDirectory> {
 		match self.index {
 			Some(_) => None,
 			None => {
@@ -175,7 +175,7 @@ impl<'a> FsNode for PakFilesystemFile<'a> {
 		}
 	}
 
-	fn try_file(&mut self) -> Option<&mut (dyn FsFile)> {
+	fn try_file(&mut self) -> Option<&mut dyn FsFile> {
 		match self.index {
 			Some(_) => Some(self as &mut dyn FsFile),
 			None => None,
@@ -184,7 +184,7 @@ impl<'a> FsNode for PakFilesystemFile<'a> {
 }
 
 impl<'a> FsReadDir for PakFilesystemFile<'a> {
-	fn readdir(&mut self) -> Result<Vec<&mut (dyn FsNode)>, FsError> {
+	fn readdir(&mut self) -> Result<Vec<&mut dyn FsNode>, FsError> {
 		let res = Vec::new();
 
 		// TODO: this
@@ -194,7 +194,7 @@ impl<'a> FsReadDir for PakFilesystemFile<'a> {
 }
 
 impl<'a> FsWriteDir for PakFilesystemFile<'a> {
-	fn touch(&mut self, _name: &str) -> Result<&mut (dyn FsNode), FsError> {
+	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
 		Err(FsError::InvalidArgument)
 	}
 }
@@ -202,7 +202,7 @@ impl<'a> FsWriteDir for PakFilesystemFile<'a> {
 impl<'a> FsDirectory for PakFilesystemFile<'a> {}
 
 impl<'a> FsFile for PakFilesystemFile<'a> {
-	fn open(&mut self) -> Result<&mut (dyn FsFileHandle), FsError> {
+	fn open(&mut self) -> Result<&mut dyn FsFileHandle, FsError> {
 		Ok(self as &mut dyn FsFileHandle)
 	}
 }

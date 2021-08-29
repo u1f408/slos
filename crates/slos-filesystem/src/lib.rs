@@ -27,29 +27,22 @@ mod errors;
 pub use self::errors::*;
 pub mod path;
 
-pub mod memory;
-pub mod pakfs;
+pub mod impls;
 
 /// Directory read functions
 pub trait FsReadDir {
 	/// Return an [`FsNode`] reference for each node in this directory
-	fn readdir(&mut self) -> Result<Vec<&mut (dyn FsNode)>, FsError>;
+	fn readdir(&mut self) -> Result<Vec<&mut dyn FsNode>, FsError>;
 }
 
 /// Directory write functions
 pub trait FsWriteDir {
 	/// Create a new empty file in this directory
-	fn touch(&mut self, name: &str) -> Result<&mut (dyn FsNode), FsError>;
+	fn touch(&mut self, name: &str) -> Result<&mut dyn FsNode, FsError>;
 }
 
-/// Mountable filesystem root
-pub trait FsRoot: Send + FsNode + FsReadDir + FsWriteDir + Debug {}
-
 /// Filesystem node
-pub trait FsNode: Debug {
-	/// Try to get the root filesystem this node belongs to
-	fn mount(&self) -> Option<&dyn FsRoot>;
-
+pub trait FsNode {
 	/// Get the inode value for this node
 	fn inode(&self) -> usize;
 
@@ -59,15 +52,21 @@ pub trait FsNode: Debug {
 	/// Get the permissions of this node
 	fn permissions(&self) -> u16;
 
+	/// Try to get this node as a [`FsRoot`] trait object reference
+	///
+	/// Will always return [`None`][Option::None] if this node is not the
+	/// root of a filesystem.
+	fn try_root(&mut self) -> Option<&mut dyn FsRoot>;
+
 	/// Try to get this node as a [`FsDirectory`] trait object reference
 	///
 	/// Will always return [`None`][Option::None] if this node is a file.
-	fn try_directory(&mut self) -> Option<&mut (dyn FsDirectory)>;
+	fn try_directory(&mut self) -> Option<&mut dyn FsDirectory>;
 
 	/// Try to get this node as a [`FsFile`] trait object reference
 	///
 	/// Will always return [`None`][Option::None] if this node is a directory.
-	fn try_file(&mut self) -> Option<&mut (dyn FsFile)>;
+	fn try_file(&mut self) -> Option<&mut dyn FsFile>;
 }
 
 /// A directory on a filesystem
@@ -75,8 +74,11 @@ pub trait FsDirectory: FsNode + FsReadDir + FsWriteDir {}
 
 /// A file on a filesystem
 pub trait FsFile: FsNode {
-	fn open(&mut self) -> Result<&mut (dyn FsFileHandle), FsError>;
+	fn open(&mut self) -> Result<&mut dyn FsFileHandle, FsError>;
 }
+
+/// Mountable filesystem root
+pub trait FsRoot: Send + FsDirectory + Debug {}
 
 /// Read/write handle to a [`FsFile`]
 pub trait FsFileHandle {

@@ -1,8 +1,9 @@
-use slos_filesystem::{pakfs::PakFilesystem, FilesystemBase, FsReadDir};
+use slos_filesystem::impls::PakFilesystem;
+use slos_filesystem::{FilesystemBase, FsReadDir};
 
 fn _construct_pakfs() -> PakFilesystem<'static> {
 	const EXAMPLE_PAK: &[u8] = include_bytes!("data/pak/test.pak");
-	PakFilesystem::from_bytes("testpakfs", EXAMPLE_PAK).unwrap()
+	PakFilesystem::from_bytes("pakfs-test", EXAMPLE_PAK).unwrap()
 }
 
 fn _construct_fsbase() -> FilesystemBase {
@@ -25,7 +26,7 @@ fn test_mount_root() {
 	base.mount(&[], Box::new(pakfs)).unwrap();
 
 	let node = base.node_at_path(&[]).unwrap();
-	assert_eq!(node.name(), "testpakfs");
+	assert_eq!(node.name(), "pakfs-test");
 }
 
 #[test]
@@ -35,7 +36,20 @@ fn test_mount_subpath() {
 	base.mount(&["test"], Box::new(pakfs)).unwrap();
 
 	let node = base.node_at_path(&["test"]).unwrap();
-	assert_eq!(node.name(), "testpakfs");
+	assert_eq!(node.name(), "pakfs-test");
+}
+
+#[test]
+fn test_mount_readdir() {
+	let pakfs = _construct_pakfs();
+	let mut base = _construct_fsbase();
+	base.mount(&[], Box::new(pakfs)).unwrap();
+
+	let node = base.node_at_path(&[]).unwrap();
+	let dir = node.try_directory().unwrap();
+	for (index, node) in (0..).zip(dir.readdir().unwrap().iter()) {
+		assert_eq!(node.name(), &format!("{}.txt", index + 1));
+	}
 }
 
 #[test]

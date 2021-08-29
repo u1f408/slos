@@ -1,15 +1,15 @@
-//! SimpleMemoryFs - an in-memory single-directory read/write filesystem
+//! SimpleMemoryFilesystem - an in-memory single-directory read/write filesystem
 
 use crate::alloc_prelude::*;
 use crate::{FsDirectory, FsError, FsFile, FsFileHandle, FsNode, FsReadDir, FsRoot, FsWriteDir};
 
 #[derive(Debug, PartialEq)]
-pub struct SimpleMemoryFs {
-	pub files: Vec<SimpleMemoryFsFile>,
+pub struct SimpleMemoryFilesystem {
+	pub files: Vec<SimpleMemoryFilesystemFile>,
 	pub current_inode: usize,
 }
 
-impl SimpleMemoryFs {
+impl SimpleMemoryFilesystem {
 	pub fn new() -> Self {
 		Self {
 			files: Vec::new(),
@@ -28,8 +28,8 @@ impl SimpleMemoryFs {
 	}
 }
 
-impl FsReadDir for SimpleMemoryFs {
-	fn readdir(&mut self) -> Result<Vec<&mut (dyn FsNode)>, FsError> {
+impl FsReadDir for SimpleMemoryFilesystem {
+	fn readdir(&mut self) -> Result<Vec<&mut dyn FsNode>, FsError> {
 		let mut res = Vec::new();
 
 		for file in self.files.iter_mut() {
@@ -40,8 +40,8 @@ impl FsReadDir for SimpleMemoryFs {
 	}
 }
 
-impl FsWriteDir for SimpleMemoryFs {
-	fn touch(&mut self, name: &str) -> Result<&mut (dyn FsNode), FsError> {
+impl FsWriteDir for SimpleMemoryFilesystem {
+	fn touch(&mut self, name: &str) -> Result<&mut dyn FsNode, FsError> {
 		let name = String::from(name);
 		if self.has_filename(&name) {
 			return Err(FsError::FileExists);
@@ -49,7 +49,7 @@ impl FsWriteDir for SimpleMemoryFs {
 
 		self.current_inode += 1;
 
-		let f = SimpleMemoryFsFile {
+		let f = SimpleMemoryFilesystemFile {
 			parent_index: None,
 			inode: self.current_inode,
 			name: name,
@@ -61,11 +61,7 @@ impl FsWriteDir for SimpleMemoryFs {
 	}
 }
 
-impl FsNode for SimpleMemoryFs {
-	fn mount(&self) -> Option<&dyn FsRoot> {
-		Some(self as &dyn FsRoot)
-	}
-
+impl FsNode for SimpleMemoryFilesystem {
 	fn inode(&self) -> usize {
 		0
 	}
@@ -78,31 +74,31 @@ impl FsNode for SimpleMemoryFs {
 		0o777
 	}
 
-	fn try_directory(&mut self) -> Option<&mut (dyn FsDirectory)> {
+	fn try_root(&mut self) -> Option<&mut dyn FsRoot> {
+		Some(self as &mut dyn FsRoot)
+	}
+
+	fn try_directory(&mut self) -> Option<&mut dyn FsDirectory> {
 		Some(self as &mut dyn FsDirectory)
 	}
 
-	fn try_file(&mut self) -> Option<&mut (dyn FsFile)> {
+	fn try_file(&mut self) -> Option<&mut dyn FsFile> {
 		None
 	}
 }
 
-impl FsDirectory for SimpleMemoryFs {}
-impl FsRoot for SimpleMemoryFs {}
+impl FsDirectory for SimpleMemoryFilesystem {}
+impl FsRoot for SimpleMemoryFilesystem {}
 
 #[derive(Debug, Default, PartialEq)]
-pub struct SimpleMemoryFsFile {
+pub struct SimpleMemoryFilesystemFile {
 	pub parent_index: Option<usize>,
 	pub inode: usize,
 	pub name: String,
 	pub content: Vec<u8>,
 }
 
-impl FsNode for SimpleMemoryFsFile {
-	fn mount(&self) -> Option<&dyn FsRoot> {
-		None
-	}
-
+impl FsNode for SimpleMemoryFilesystemFile {
 	fn inode(&self) -> usize {
 		self.inode
 	}
@@ -115,22 +111,26 @@ impl FsNode for SimpleMemoryFsFile {
 		0o777
 	}
 
-	fn try_directory(&mut self) -> Option<&mut (dyn FsDirectory)> {
+	fn try_root(&mut self) -> Option<&mut dyn FsRoot> {
 		None
 	}
 
-	fn try_file(&mut self) -> Option<&mut (dyn FsFile)> {
+	fn try_directory(&mut self) -> Option<&mut dyn FsDirectory> {
+		None
+	}
+
+	fn try_file(&mut self) -> Option<&mut dyn FsFile> {
 		Some(self as &mut dyn FsFile)
 	}
 }
 
-impl FsFile for SimpleMemoryFsFile {
-	fn open(&mut self) -> Result<&mut (dyn FsFileHandle), FsError> {
+impl FsFile for SimpleMemoryFilesystemFile {
+	fn open(&mut self) -> Result<&mut dyn FsFileHandle, FsError> {
 		Ok(self as &mut dyn FsFileHandle)
 	}
 }
 
-impl FsFileHandle for SimpleMemoryFsFile {
+impl FsFileHandle for SimpleMemoryFilesystemFile {
 	fn raw_read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError> {
 		if offset > self.content.len() {
 			return Err(FsError::EndOfFile);

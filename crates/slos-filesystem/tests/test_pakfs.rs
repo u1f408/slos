@@ -2,29 +2,11 @@ use slos_filesystem::{pakfs::PakFilesystem, FilesystemBase, FsReadDir};
 
 fn _construct_pakfs() -> PakFilesystem<'static> {
 	const EXAMPLE_PAK: &[u8] = include_bytes!("data/pak/test.pak");
-	PakFilesystem::from_bytes("test", EXAMPLE_PAK).unwrap()
+	PakFilesystem::from_bytes("testpakfs", EXAMPLE_PAK).unwrap()
 }
 
 fn _construct_fsbase() -> FilesystemBase {
 	FilesystemBase::new()
-}
-
-#[test]
-fn test_mount_root() {
-	let pakfs = _construct_pakfs();
-	let mut base = _construct_fsbase();
-
-	base.mount(&[], Box::new(pakfs)).unwrap();
-	assert!(base.node_at_path(&[]).is_ok());
-}
-
-#[test]
-fn test_mount_subpath() {
-	let pakfs = _construct_pakfs();
-	let mut base = _construct_fsbase();
-
-	base.mount(&["test"], Box::new(pakfs)).unwrap();
-	assert!(base.node_at_path(&["test"]).is_ok());
 }
 
 #[test]
@@ -37,10 +19,32 @@ fn test_root_readdir() {
 }
 
 #[test]
-fn test_file_read() {
-	let mut pakfs = _construct_pakfs();
-	let mut readdir = pakfs.readdir().unwrap();
-	let node = readdir.iter_mut().next().unwrap();
+fn test_mount_root() {
+	let pakfs = _construct_pakfs();
+	let mut base = _construct_fsbase();
+	base.mount(&[], Box::new(pakfs)).unwrap();
+
+	let node = base.node_at_path(&[]).unwrap();
+	assert_eq!(node.name(), "testpakfs");
+}
+
+#[test]
+fn test_mount_subpath() {
+	let pakfs = _construct_pakfs();
+	let mut base = _construct_fsbase();
+	base.mount(&["test"], Box::new(pakfs)).unwrap();
+
+	let node = base.node_at_path(&["test"]).unwrap();
+	assert_eq!(node.name(), "testpakfs");
+}
+
+#[test]
+fn test_mount_file_read() {
+	let pakfs = _construct_pakfs();
+	let mut base = _construct_fsbase();
+	base.mount(&[], Box::new(pakfs)).unwrap();
+
+	let node = base.node_at_path(&["3.txt"]).unwrap();
 	let file = node.try_file().unwrap();
 	let handle = file.open().unwrap();
 

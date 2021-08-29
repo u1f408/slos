@@ -224,40 +224,41 @@ impl FilesystemBase {
 				.collect::<Vec<String>>(),
 		));
 
-		// find closest parent mountpoint
+		// find closest parent mountpoint …
 		let mut closest: Option<&UnsafeContainer<FilesystemMountpoint>> = None;
-		if path.is_empty() {
-			trace!("empty path, getting first empty root");
-			'ep: for fs in self.mountpoints.as_slice().iter() {
-				if fs.get().path_vec().is_empty() {
-					trace!("fs={:?}", fs);
-					closest = Some(fs);
-					break 'ep;
-				}
-			}
-		} else {
-			let mut xsc = 0usize;
-			for fs in self.mountpoints.as_slice().iter() {
-				let pathvec = fs.get().path_vec();
-				let mut startcount = 0usize;
 
-				'uidx: for (unit, idx) in pathvec.iter().zip(0..) {
-					if path.len() >= idx && &path[idx] == unit {
-						startcount += 1;
-					}
-
-					break 'uidx;
-				}
-
-				if startcount > xsc {
-					trace!("startcount={:?} xsc={:?} fs={:?}", startcount, xsc, fs);
-					closest = Some(fs);
-					xsc = startcount;
-				}
+		// … starting with the root filesystem …
+		'ep: for fs in self.mountpoints.as_slice().iter() {
+			if fs.get().path_vec().is_empty() {
+				trace!("fs={:?}", fs);
+				closest = Some(fs);
+				break 'ep;
 			}
 		}
 
-		// if none closest, abort
+		// … and then checking for path prefixes
+		let mut xsc = 0usize;
+		for fs in self.mountpoints.as_slice().iter() {
+			let pathvec = fs.get().path_vec();
+			let mut startcount = 0usize;
+
+			'uidx: for (unit, idx) in pathvec.iter().zip(0..) {
+				if path.len() >= idx && &path[idx] == unit {
+					startcount += 1;
+				} else {
+					break 'uidx;
+				}
+			}
+
+			if startcount > xsc {
+				trace!("startcount={:?} xsc={:?} fs={:?}", startcount, xsc, fs);
+				closest = Some(fs);
+				xsc = startcount;
+			}
+		}
+
+		// if none closest (which would only happen if we have no rootfs) then
+		// return a FileNotFound
 		if closest.is_none() {
 			trace!("couldn't find a mountpoint close to {:?}", &path);
 			return Err(FsError::FileNotFound);

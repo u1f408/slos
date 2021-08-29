@@ -11,21 +11,21 @@ pub fn normalize(path: &str) -> String {
 	let mut chars = path.chars().collect::<Vec<char>>();
 
 	// Trim trailing separators
-	if chars.first() == Some(&PATH_SEPARATOR) && chars.len() > 1 {
+	if chars.last() == Some(&PATH_SEPARATOR) && chars.len() > 1 {
 		while chars.last() == Some(&PATH_SEPARATOR) {
 			chars.pop();
 		}
-
-		// And then add a final separator (which gets stripped out during
-		// the rejoin later on, meaning the final segment gets the same
-		// checks as the other segments)
-		chars.push('/');
 	}
 
 	// Trim leading separators
 	while chars.first() == Some(&PATH_SEPARATOR) {
 		chars.remove(0);
 	}
+
+	// And then add a final separator (which gets stripped out during
+	// the rejoin later on, meaning the final segment gets the same
+	// checks as the other segments)
+	chars.push('/');
 
 	// Join chars into string parts
 	let mut current = String::new();

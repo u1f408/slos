@@ -9,6 +9,7 @@ extern crate std;
 use self::alloc_prelude::*;
 use alloc::prelude::v1 as alloc_prelude;
 
+use core::fmt::Debug;
 use slos_filesystem::FsFileHandle;
 
 pub mod null_system;
@@ -47,7 +48,7 @@ pub trait SystemKmainHooks {
 }
 
 /// Base system hardware trait
-pub trait SystemHardware: Send + SystemKmainHooks {
+pub trait SystemHardware: Send + Debug + SystemKmainHooks {
 	/// Name of the crate implementing this system
 	///
 	/// This method should be implemented as the following:

@@ -15,7 +15,7 @@ use slos_filesystem::FsFileHandle;
 pub mod null_system;
 
 /// System console
-pub trait SystemConsole: FsFileHandle {}
+pub trait SystemConsole: Debug + FsFileHandle {}
 
 /// System CPU handling
 pub trait SystemCpu {

@@ -42,7 +42,7 @@ pub trait FsWriteDir {
 }
 
 /// Filesystem node
-pub trait FsNode {
+pub trait FsNode: Debug {
 	/// Get the inode value for this node
 	fn inode(&self) -> usize;
 
@@ -81,7 +81,7 @@ pub trait FsFile: FsNode {
 pub trait FsRoot: Send + FsDirectory + Debug {}
 
 /// Read/write handle to a [`FsFile`]
-pub trait FsFileHandle {
+pub trait FsFileHandle: Debug {
 	/// Try to read from the file
 	///
 	/// Attempts to read `length` bytes from the `offset` into the file.

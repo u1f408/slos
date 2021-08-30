@@ -1,4 +1,6 @@
 #![no_std]
+#![feature(allocator_internals)]
+#![needs_allocator]
 #![allow(incomplete_features)]
 #![feature(alloc_prelude)]
 #![feature(trait_upcasting)]

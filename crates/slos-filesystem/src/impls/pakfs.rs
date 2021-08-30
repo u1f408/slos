@@ -10,10 +10,13 @@ use core::fmt::{self, Debug};
 
 use rpak::PakArchive;
 
+static mut CURRENT_INODE: usize = 0xC3010000;
+
 pub struct PakFilesystem<'a> {
 	pub archive: Arc<PakArchive<'a>>,
 	pub files: Vec<PakFilesystemFile<'a>>,
 	pub name: &'a str,
+	pub inode: usize,
 }
 
 impl<'a> PakFilesystem<'a> {
@@ -22,6 +25,10 @@ impl<'a> PakFilesystem<'a> {
 			archive: Arc::new(PakArchive::from_bytes(data)?),
 			files: Vec::new(),
 			name,
+			inode: unsafe {
+				CURRENT_INODE += 1;
+				CURRENT_INODE
+			},
 		};
 
 		s.populate_files();
@@ -79,7 +86,7 @@ impl<'a> FsWriteDir for PakFilesystem<'a> {
 
 impl<'a> FsNode for PakFilesystem<'a> {
 	fn inode(&self) -> usize {
-		0
+		self.inode
 	}
 
 	fn name(&self) -> &str {

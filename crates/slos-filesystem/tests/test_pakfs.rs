@@ -1,3 +1,5 @@
+use test_env_log::test;
+
 use slos_filesystem::impls::PakFilesystem;
 use slos_filesystem::{FilesystemBase, FsReadDir};
 

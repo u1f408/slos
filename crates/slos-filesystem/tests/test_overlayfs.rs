@@ -1,3 +1,5 @@
+use test_env_log::test;
+
 use slos_filesystem::impls::OverlayFilesystem;
 use slos_filesystem::{FilesystemBase, FsReadDir, FsRoot};
 use slos_helpers::UnsafeContainer;

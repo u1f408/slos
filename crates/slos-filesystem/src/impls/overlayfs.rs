@@ -7,8 +7,28 @@ use crate::{FsDirectory, FsError, FsFile, FsFileHandle, FsNode, FsReadDir, FsRoo
 use alloc::sync::Arc;
 use core::cmp::PartialEq;
 use core::fmt::{self, Debug};
+use slos_helpers::UnsafeContainer;
 
 static mut CURRENT_INODE: usize = 0xC31A0000;
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum NodeType {
+	Unknown,
+	Directory,
+	File,
+}
+
+impl From<&mut dyn FsNode> for NodeType {
+	fn from(node: &mut dyn FsNode) -> NodeType {
+		if node.try_file().is_some() {
+			NodeType::File
+		} else if node.try_directory().is_some() {
+			NodeType::Directory
+		} else {
+			NodeType::Unknown
+		}
+	}
+}
 
 /// An overlay filesystem proxy.
 pub struct OverlayFilesystem<'a, 'base, 'overlay> {
@@ -43,8 +63,9 @@ impl<'a, 'base, 'overlay> OverlayFilesystem<'a, 'base, 'overlay> {
 
 impl<'a, 'base, 'overlay> Debug for OverlayFilesystem<'a, 'base, 'overlay> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_tuple("OverlayFilesystem")
-			.field(&self.inner)
+		f.debug_struct("OverlayFilesystem")
+			.field("inner", &self.inner)
+			.field("base_path", &self.base_path)
 			.finish()
 	}
 }
@@ -100,6 +121,7 @@ impl<'a, 'base, 'overlay> FsRoot for OverlayFilesystem<'a, 'base, 'overlay> {}
 pub struct OverlayFilesystemPath<'a, 'base, 'overlay> {
 	pub inner: Arc<OverlayFilesystemInner<'a, 'base, 'overlay>>,
 	pub path: Vec<String>,
+	node_type: NodeType,
 	children: Vec<Self>,
 }
 
@@ -108,43 +130,51 @@ impl<'a, 'base, 'overlay> OverlayFilesystemPath<'a, 'base, 'overlay> {
 		Self {
 			inner: Arc::clone(&inner),
 			path: Vec::new(),
+			node_type: NodeType::Directory,
 			children: Vec::new(),
 		}
 	}
 
-	pub fn update_children(&mut self) {
-		let names = {
-			let mut names = Vec::new();
+	fn update_children(&mut self) {
+		self.children.clear();
 
-			if let Some(inner) = Arc::get_mut(&mut self.inner) {
-				if let Some(overlay) = Arc::get_mut(&mut inner.overlay) {
-					if let Ok(rd) = overlay.readdir() {
-						for node in rd.iter() {
-							names.push(String::from(node.name()));
-						}
-					}
+		let mut children: Vec<(String, NodeType)> = Vec::new();
+		let inner = unsafe { Arc::get_mut_unchecked(&mut self.inner) };
+
+		{
+			let overlay = unsafe { Arc::get_mut_unchecked(&mut inner.overlay) };
+			if let Ok(rd) = overlay.readdir() {
+				for node in rd {
+					let name = String::from(node.name());
+					let node_type = NodeType::from(node);
+					trace!("overlay child: name={:?} node_type={:?}", &name, &node_type);
+					children.push((name, node_type));
 				}
+			}
+		}
 
-				if let Some(base) = Arc::get_mut(&mut inner.base) {
-					if let Ok(rd) = base.readdir() {
-						for node in rd.iter() {
-							names.push(String::from(node.name()));
-						}
+		{
+			let base = unsafe { Arc::get_mut_unchecked(&mut inner.base) };
+			if let Ok(rd) = base.readdir() {
+				for node in rd {
+					let name = String::from(node.name());
+					if !children.iter().find(|x| x.0 == name).is_some() {
+						let node_type = NodeType::from(node);
+						trace!("base child: name={:?} node_type={:?}", &name, &node_type);
+						children.push((name, node_type));
 					}
 				}
 			}
+		}
 
-			names
-		};
-
-		self.children.clear();
-		for name in names.iter() {
+		for (name, node_type) in children.iter() {
 			let mut path = self.path.clone();
 			path.push(name.to_string());
 
 			let node = Self {
 				inner: Arc::clone(&self.inner),
 				path: fspath::split(&fspath::join(&path)),
+				node_type: *node_type,
 				children: Vec::new(),
 			};
 
@@ -152,8 +182,99 @@ impl<'a, 'base, 'overlay> OverlayFilesystemPath<'a, 'base, 'overlay> {
 		}
 	}
 
+	/// Is this node a file?
 	pub fn is_file(&self) -> bool {
-		false
+		self.node_type == NodeType::File
+	}
+
+	/// Is this node a directory?
+	pub fn is_directory(&self) -> bool {
+		self.node_type == NodeType::Directory
+	}
+
+	/// Try to get the inner node for the current path.
+	///
+	/// If `ignore_root` is `true`, this ignores filesystem roots when finding
+	/// a return value. If `ignore_root` is `false`, and we have an empty path,
+	/// this will return the filesystem root for the overlay.
+	pub fn try_get_inner_node(&mut self, ignore_root: bool) -> Option<&mut dyn FsNode> {
+		let mut found_node: Option<&mut dyn FsNode> = None;
+		let inner = unsafe { Arc::get_mut_unchecked(&mut self.inner) };
+
+		let rev_segments = {
+			let mut rev_segments = self.path.clone();
+			rev_segments.reverse();
+			rev_segments
+		};
+
+		{
+			let mut rev_segments = rev_segments.clone();
+			let base = unsafe { Arc::get_mut_unchecked(&mut inner.base) };
+			let current_node: UnsafeContainer<&mut dyn FsNode> = UnsafeContainer::new(*base);
+
+			trace!("'fsearchbase entry");
+			'fsearchbase: while let Some(path_seg) = rev_segments.pop() {
+				if let Some(dir) = current_node.get().try_directory() {
+					if let Ok(rd) = dir.readdir() {
+						for new in rd {
+							if new.name() == path_seg {
+								trace!("found next node, name={:?}", path_seg);
+								current_node.replace(new);
+								continue 'fsearchbase;
+							}
+						}
+					}
+				}
+
+				// if we have no path segments left at this point, we have our node
+				if rev_segments.is_empty() {
+					trace!("we've got our node, breaking 'fsearchbase");
+					break 'fsearchbase;
+				}
+			}
+
+			if !ignore_root || current_node.get().try_root().is_none() {
+				found_node = Some(current_node.into_inner());
+			} else {
+				trace!("found_node was a root, ignoring");
+			}
+		}
+
+		{
+			let mut rev_segments = rev_segments.clone();
+			let overlay = unsafe { Arc::get_mut_unchecked(&mut inner.overlay) };
+			let current_node: UnsafeContainer<&mut dyn FsNode> = UnsafeContainer::new(*overlay);
+
+			trace!("'fsearchoverlay entry");
+			'fsearchoverlay: while let Some(path_seg) = rev_segments.pop() {
+				if let Some(dir) = current_node.get().try_directory() {
+					if let Ok(rd) = dir.readdir() {
+						for new in rd {
+							if new.name() == path_seg {
+								trace!("found next node, name={:?}", path_seg);
+								current_node.replace(new);
+								continue 'fsearchoverlay;
+							}
+						}
+					}
+				}
+
+				// if we have no path segments left at this point, we have our node
+				if rev_segments.is_empty() && current_node.get().try_root().is_none() {
+					trace!("we've got our node, breaking 'fsearchoverlay");
+					break 'fsearchoverlay;
+				}
+			}
+
+			if !ignore_root || current_node.get().try_root().is_none() {
+				found_node = Some(current_node.into_inner());
+			} else {
+				trace!("found_node was a root, ignoring");
+			}
+		}
+
+		trace!("found_node = {:?}", found_node);
+		found_node
 	}
 }
 
@@ -162,6 +283,7 @@ impl<'a, 'base, 'overlay> Debug for OverlayFilesystemPath<'a, 'base, 'overlay> {
 		f.debug_struct("OverlayFilesystemPath")
 			.field("inner", &self.inner)
 			.field("path", &self.path)
+			.field("children", &self.children)
 			.finish()
 	}
 }
@@ -174,9 +296,9 @@ impl<'a, 'base, 'overlay> PartialEq for OverlayFilesystemPath<'a, 'base, 'overla
 
 impl<'a, 'base, 'overlay> FsReadDir for OverlayFilesystemPath<'a, 'base, 'overlay> {
 	fn readdir(&mut self) -> Result<Vec<&mut dyn FsNode>, FsError> {
-		self.update_children();
 		let mut nodes = Vec::new();
 
+		self.update_children();
 		for node in self.children.iter_mut() {
 			nodes.push(node as &mut dyn FsNode);
 		}
@@ -186,8 +308,13 @@ impl<'a, 'base, 'overlay> FsReadDir for OverlayFilesystemPath<'a, 'base, 'overla
 }
 
 impl<'a, 'base, 'overlay> FsWriteDir for OverlayFilesystemPath<'a, 'base, 'overlay> {
-	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
-		Err(FsError::InvalidArgument)
+	fn touch(&mut self, name: &str) -> Result<&mut dyn FsNode, FsError> {
+		let inner = self
+			.try_get_inner_node(false)
+			.ok_or(FsError::FileNotFound)?;
+
+		let directory = inner.try_directory().ok_or(FsError::FileNotFound)?;
+		directory.touch(name)
 	}
 }
 
@@ -213,10 +340,10 @@ impl<'a, 'base, 'overlay> FsNode for OverlayFilesystemPath<'a, 'base, 'overlay> 
 	}
 
 	fn try_directory(&mut self) -> Option<&mut dyn FsDirectory> {
-		if self.is_file() {
-			None
-		} else {
+		if self.is_directory() {
 			Some(self as &mut dyn FsDirectory)
+		} else {
+			None
 		}
 	}
 
@@ -231,7 +358,25 @@ impl<'a, 'base, 'overlay> FsNode for OverlayFilesystemPath<'a, 'base, 'overlay> 
 
 impl<'a, 'base, 'overlay> FsFile for OverlayFilesystemPath<'a, 'base, 'overlay> {
 	fn open(&mut self) -> Result<&mut dyn FsFileHandle, FsError> {
-		Err(FsError::InvalidArgument)
+		Ok(self as &mut dyn FsFileHandle)
+	}
+}
+
+impl<'a, 'base, 'overlay> FsFileHandle for OverlayFilesystemPath<'a, 'base, 'overlay> {
+	fn raw_read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError> {
+		let inner = self.try_get_inner_node(true).ok_or(FsError::FileNotFound)?;
+		let file = inner.try_file().ok_or(FsError::FileNotFound)?;
+		let handle = file.open().or(Err(FsError::FileNotFound))?;
+
+		handle.raw_read(offset, length)
+	}
+
+	fn raw_write(&mut self, offset: usize, data: &[u8]) -> Result<(), FsError> {
+		let inner = self.try_get_inner_node(true).ok_or(FsError::FileNotFound)?;
+		let file = inner.try_file().ok_or(FsError::FileNotFound)?;
+		let handle = file.open().or(Err(FsError::FileNotFound))?;
+
+		handle.raw_write(offset, data)
 	}
 }
 

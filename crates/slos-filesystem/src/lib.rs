@@ -2,6 +2,7 @@
 #![allow(incomplete_features)]
 #![feature(alloc_prelude)]
 #![feature(trait_upcasting)]
+#![feature(get_mut_unchecked)]
 
 extern crate alloc;
 #[cfg(feature = "std")]

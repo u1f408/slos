@@ -8,7 +8,7 @@ license = "BSD-2-Clause-Patent"
 resolver = "2"
 
 [features]
-init_examples = [ "slos/init_examples" ] 
+init_examples = [ "slos/init_examples" ]
 default = [ ]
 
 [dependencies]
@@ -22,6 +22,6 @@ env_logger = { version = "0.9.0" }
 lazy_static = { version = "1.4" }
 anyhow = { version = "1.0.0" }
 rustyline = { version = "8.2.0" }
-shlex = { version = "1.0.0" }
+shlex = { version = "1.1.0" }
 signal-hook = { version = "0.3.9", features = [ "extended-siginfo" ] }
 structopt = { version = "0.3" }

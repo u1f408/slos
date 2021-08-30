@@ -297,22 +297,31 @@ impl FilesystemBase {
 			}
 		};
 
-		// reverse the list of path segments, to allow us to pop from this list
-		let mut rev_segments = {
-			let mut rev_segments = path_remaining.clone();
-			rev_segments.reverse();
-			rev_segments
-		};
-
 		// traverse the mountpoint for the node
-		//
-		// this will just fall through if there's nothing in `path_remaining`
-		// so we'll automatically return the mountpoint root without having to
-		// explicitly check for that
-		let current_node: UnsafeContainer<&mut dyn FsNode> = UnsafeContainer::new(mount_root);
-		'fsearch: while let Some(path_seg) = rev_segments.pop() {
-			if let Some(dir) = current_node.get().try_directory() {
-				for new in dir.readdir()? {
+		match traverse_node(mount_root, path_remaining.clone(), false) {
+			Some(node) => Ok(node),
+			None => Err(FsError::FileNotFound),
+		}
+	}
+}
+
+/// Traverse the directory node `root` to find the node at `subpath`
+///
+/// If `ignore_root` is `true`, this method will return `None` instead of
+/// `Some(root)` when `subpath` is empty.
+pub fn traverse_node<'x>(
+	root: &'x mut dyn FsNode,
+	mut subpath: Vec<String>,
+	ignore_root: bool,
+) -> Option<&'x mut dyn FsNode> {
+	subpath.reverse();
+	let root_inode = root.inode();
+
+	let current_node: UnsafeContainer<&'x mut dyn FsNode> = UnsafeContainer::new(root);
+	'fsearch: while let Some(path_seg) = subpath.pop() {
+		if let Some(dir) = current_node.get().try_directory() {
+			if let Ok(rd) = dir.readdir() {
+				for new in rd {
 					if new.name() == path_seg {
 						trace!("found next node, name={:?}", path_seg);
 						current_node.replace(new);
@@ -320,19 +329,20 @@ impl FilesystemBase {
 					}
 				}
 			}
-
-			// if we have no path segments left at this point, we have our node
-			if rev_segments.is_empty() {
-				trace!("we've got our node, breaking 'fsearch");
-				break 'fsearch;
-			}
-
-			// but if we've fallen through to here, and we have path segments left,
-			// the path segment we need was not found in the current directory node,
-			// so return a FileNotFound
-			return Err(FsError::FileNotFound);
 		}
 
-		Ok(current_node.into_inner())
+		// if we have no path segments left at this point, we have our node
+		if subpath.is_empty() {
+			break 'fsearch;
+		}
+	}
+
+	let node = current_node.into_inner();
+	if ignore_root && node.inode() == root_inode {
+		trace!("current_node.inode() == root.inode(), returning None");
+		return None;
+	} else {
+		trace!("we've got our node, returning {:?}", node);
+		return Some(node);
 	}
 }

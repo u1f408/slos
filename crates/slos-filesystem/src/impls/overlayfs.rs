@@ -2,12 +2,14 @@
 
 use crate::alloc_prelude::*;
 use crate::path as fspath;
-use crate::{FsDirectory, FsError, FsFile, FsFileHandle, FsNode, FsReadDir, FsRoot, FsWriteDir};
+use crate::{
+	traverse_node, FsDirectory, FsError, FsFile, FsFileHandle, FsNode, FsReadDir, FsRoot,
+	FsWriteDir,
+};
 
 use alloc::sync::Arc;
 use core::cmp::PartialEq;
 use core::fmt::{self, Debug};
-use slos_helpers::UnsafeContainer;
 
 static mut CURRENT_INODE: usize = 0xC31A0000;
 
@@ -198,83 +200,17 @@ impl<'a, 'base, 'overlay> OverlayFilesystemPath<'a, 'base, 'overlay> {
 	/// a return value. If `ignore_root` is `false`, and we have an empty path,
 	/// this will return the filesystem root for the overlay.
 	pub fn try_get_inner_node(&mut self, ignore_root: bool) -> Option<&mut dyn FsNode> {
-		let mut found_node: Option<&mut dyn FsNode> = None;
 		let inner = unsafe { Arc::get_mut_unchecked(&mut self.inner) };
+		let base = unsafe { Arc::get_mut_unchecked(&mut inner.base) };
+		let overlay = unsafe { Arc::get_mut_unchecked(&mut inner.overlay) };
 
-		let rev_segments = {
-			let mut rev_segments = self.path.clone();
-			rev_segments.reverse();
-			rev_segments
-		};
-
-		{
-			let mut rev_segments = rev_segments.clone();
-			let base = unsafe { Arc::get_mut_unchecked(&mut inner.base) };
-			let current_node: UnsafeContainer<&mut dyn FsNode> = UnsafeContainer::new(*base);
-
-			trace!("'fsearchbase entry");
-			'fsearchbase: while let Some(path_seg) = rev_segments.pop() {
-				if let Some(dir) = current_node.get().try_directory() {
-					if let Ok(rd) = dir.readdir() {
-						for new in rd {
-							if new.name() == path_seg {
-								trace!("found next node, name={:?}", path_seg);
-								current_node.replace(new);
-								continue 'fsearchbase;
-							}
-						}
-					}
-				}
-
-				// if we have no path segments left at this point, we have our node
-				if rev_segments.is_empty() {
-					trace!("we've got our node, breaking 'fsearchbase");
-					break 'fsearchbase;
-				}
-			}
-
-			if !ignore_root || current_node.get().try_root().is_none() {
-				found_node = Some(current_node.into_inner());
-			} else {
-				trace!("found_node was a root, ignoring");
-			}
+		match traverse_node(*overlay, self.path.clone(), ignore_root) {
+			Some(node) => Some(node),
+			None => match traverse_node(*base, self.path.clone(), ignore_root) {
+				Some(node) => Some(node),
+				None => None,
+			},
 		}
-
-		{
-			let mut rev_segments = rev_segments.clone();
-			let overlay = unsafe { Arc::get_mut_unchecked(&mut inner.overlay) };
-			let current_node: UnsafeContainer<&mut dyn FsNode> = UnsafeContainer::new(*overlay);
-
-			trace!("'fsearchoverlay entry");
-			'fsearchoverlay: while let Some(path_seg) = rev_segments.pop() {
-				if let Some(dir) = current_node.get().try_directory() {
-					if let Ok(rd) = dir.readdir() {
-						for new in rd {
-							if new.name() == path_seg {
-								trace!("found next node, name={:?}", path_seg);
-								current_node.replace(new);
-								continue 'fsearchoverlay;
-							}
-						}
-					}
-				}
-
-				// if we have no path segments left at this point, we have our node
-				if rev_segments.is_empty() && current_node.get().try_root().is_none() {
-					trace!("we've got our node, breaking 'fsearchoverlay");
-					break 'fsearchoverlay;
-				}
-			}
-
-			if !ignore_root || current_node.get().try_root().is_none() {
-				found_node = Some(current_node.into_inner());
-			} else {
-				trace!("found_node was a root, ignoring");
-			}
-		}
-
-		trace!("found_node = {:?}", found_node);
-		found_node
 	}
 }
 

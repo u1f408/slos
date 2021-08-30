@@ -18,6 +18,9 @@ pub enum FsError {
 	/// File not found
 	FileNotFound,
 
+	/// Filesystem is read-only
+	ReadOnlyFilesystem,
+
 	/// Invalid argument
 	InvalidArgument,
 

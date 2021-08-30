@@ -75,7 +75,7 @@ impl FsReadDir for SystemDeviceCollection {
 
 impl FsWriteDir for SystemDeviceCollection {
 	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
-		Err(FsError::InvalidArgument)
+		Err(FsError::ReadOnlyFilesystem)
 	}
 }
 

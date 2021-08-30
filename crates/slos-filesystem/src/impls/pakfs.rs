@@ -73,7 +73,7 @@ impl<'a> FsReadDir for PakFilesystem<'a> {
 
 impl<'a> FsWriteDir for PakFilesystem<'a> {
 	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
-		Err(FsError::InvalidArgument)
+		Err(FsError::ReadOnlyFilesystem)
 	}
 }
 
@@ -195,7 +195,7 @@ impl<'a> FsReadDir for PakFilesystemFile<'a> {
 
 impl<'a> FsWriteDir for PakFilesystemFile<'a> {
 	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
-		Err(FsError::InvalidArgument)
+		Err(FsError::ReadOnlyFilesystem)
 	}
 }
 
@@ -232,6 +232,6 @@ impl<'a> FsFileHandle for PakFilesystemFile<'a> {
 	}
 
 	fn raw_write(&mut self, _offset: usize, _data: &[u8]) -> Result<(), FsError> {
-		Err(FsError::InvalidArgument)
+		Err(FsError::ReadOnlyFilesystem)
 	}
 }

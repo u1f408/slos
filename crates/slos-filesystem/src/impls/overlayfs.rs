@@ -10,6 +10,7 @@ use crate::{
 use alloc::sync::Arc;
 use core::cmp::PartialEq;
 use core::fmt::{self, Debug};
+use slos_helpers::UnsafeContainer;
 
 static mut CURRENT_INODE: usize = 0xC31A0000;
 
@@ -317,9 +318,62 @@ impl<'a, 'base, 'overlay> FsFileHandle for OverlayFilesystemPath<'a, 'base, 'ove
 	}
 
 	fn raw_write(&mut self, offset: usize, data: &[u8]) -> Result<(), FsError> {
-		let inner = self.try_get_inner_node(true).ok_or(FsError::FileNotFound)?;
-		let file = inner.try_file().ok_or(FsError::FileNotFound)?;
-		let handle = file.open().or(Err(FsError::FileNotFound))?;
+		// Get our filesystem roots
+		let inner = unsafe { Arc::get_mut_unchecked(&mut self.inner) };
+		let base = unsafe { Arc::get_mut_unchecked(&mut inner.base) };
+		let overlay = unsafe { Arc::get_mut_unchecked(&mut inner.overlay) };
+
+		let handle = if let Some(overlaynode) = traverse_node(*overlay, self.path.clone(), true) {
+			// Found the node on the overlay, use the handle to that
+			let file = overlaynode.try_file().ok_or(FsError::FileNotFound)?;
+			let handle = file.open().or(Err(FsError::FileNotFound))?;
+			handle
+		} else {
+			// Couldn't find the node on the overlay, so:
+			//
+			// - recursively `mkdir` the base path on the overlay
+			// - `touch` the file on the overlay
+			// - copy the contents of the same path on the base to the overlay
+			// - use the handle to the new file on the overlay
+
+			let current_node: UnsafeContainer<&mut dyn FsNode> = UnsafeContainer::new(*overlay);
+
+			let mut base_path = self.path.clone();
+			let name = base_path.pop().ok_or(FsError::Unknown)?;
+
+			// recursive mkdir
+			for path_seg in base_path {
+				if let Some(dir) = current_node.get().try_directory() {
+					current_node.replace(dir.mkdir(&path_seg)?);
+				} else {
+					trace!("mkdir: current_node.try_directory() failed");
+					return Err(FsError::FileNotFound);
+				}
+			}
+
+			// touch
+			if let Some(dir) = current_node.get().try_directory() {
+				current_node.replace(dir.touch(&name)?);
+			} else {
+				trace!("touch: current_node.try_directory() failed");
+				return Err(FsError::FileNotFound);
+			}
+
+			// current_node is our new file on the overlay
+			let overlaynode = current_node.into_inner();
+			let overlayfile = overlaynode.try_file().ok_or(FsError::FileNotFound)?;
+			let overlayhandle = overlayfile.open().or(Err(FsError::FileNotFound))?;
+
+			// copy file content from base
+			if let Some(basenode) = traverse_node(*base, self.path.clone(), true) {
+				let basefile = basenode.try_file().ok_or(FsError::FileNotFound)?;
+				let basehandle = basefile.open().or(Err(FsError::FileNotFound))?;
+
+				overlayhandle.raw_write(0, &basehandle.raw_read(0, None)?)?;
+			}
+
+			overlayhandle
+		};
 
 		handle.raw_write(offset, data)
 	}

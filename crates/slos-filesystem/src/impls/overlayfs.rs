@@ -252,6 +252,15 @@ impl<'a, 'base, 'overlay> FsWriteDir for OverlayFilesystemPath<'a, 'base, 'overl
 		let directory = inner.try_directory().ok_or(FsError::FileNotFound)?;
 		directory.touch(name)
 	}
+
+	fn mkdir(&mut self, name: &str) -> Result<&mut dyn FsNode, FsError> {
+		let inner = self
+			.try_get_inner_node(false)
+			.ok_or(FsError::FileNotFound)?;
+
+		let directory = inner.try_directory().ok_or(FsError::FileNotFound)?;
+		directory.mkdir(name)
+	}
 }
 
 impl<'a, 'base, 'overlay> FsNode for OverlayFilesystemPath<'a, 'base, 'overlay> {

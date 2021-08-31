@@ -89,6 +89,10 @@ impl<'a, 'base, 'overlay> FsWriteDir for OverlayFilesystem<'a, 'base, 'overlay> 
 	fn touch(&mut self, name: &str) -> Result<&mut dyn FsNode, FsError> {
 		self.base_path.touch(name)
 	}
+
+	fn mkdir(&mut self, name: &str) -> Result<&mut dyn FsNode, FsError> {
+		self.base_path.mkdir(name)
+	}
 }
 
 impl<'a, 'base, 'overlay> FsNode for OverlayFilesystem<'a, 'base, 'overlay> {

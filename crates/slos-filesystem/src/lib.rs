@@ -52,6 +52,11 @@ pub trait FsWriteDir {
 	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
 		Err(FsError::InvalidArgument)
 	}
+
+	/// Create a new empty directory in this directory
+	fn mkdir(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
+		Err(FsError::InvalidArgument)
+	}
 }
 
 /// Filesystem node

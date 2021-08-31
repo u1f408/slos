@@ -13,68 +13,42 @@ use rpak::PakArchive;
 static mut CURRENT_INODE: usize = 0xC3010000;
 
 pub struct PakFilesystem<'a> {
-	pub archive: Arc<PakArchive<'a>>,
-	pub files: Vec<PakFilesystemFile<'a>>,
-	pub name: &'a str,
-	pub inode: usize,
+	pub inner: Arc<PakFilesystemInner<'a>>,
+	base_path: PakFilesystemPath<'a>,
 }
 
 impl<'a> PakFilesystem<'a> {
 	pub fn from_bytes(name: &'static str, data: &'a [u8]) -> Result<Self, ()> {
-		let mut s = Self {
+		let inner = Arc::new(PakFilesystemInner {
 			archive: Arc::new(PakArchive::from_bytes(data)?),
-			files: Vec::new(),
 			name,
 			inode: unsafe {
 				CURRENT_INODE += 1;
 				CURRENT_INODE
 			},
-		};
+		});
 
-		s.populate_files();
-		Ok(s)
+		Ok(unsafe { Self::new_from_inner(inner) })
 	}
 
-	fn populate_files(&mut self) {
-		self.files.clear();
-		for (index, (name, _)) in (0..).zip(self.archive.as_ref().files.iter()) {
-			let path = fspath::split(&name);
-			self.files.push(PakFilesystemFile {
-				parent: Arc::clone(&self.archive),
-				index: Some(index),
-				path,
-			});
-		}
+	pub unsafe fn new_from_inner(inner: Arc<PakFilesystemInner<'a>>) -> Self {
+		let base_path = PakFilesystemPath::new_from_inner(Arc::clone(&inner));
+		Self { inner, base_path }
 	}
 }
 
 impl<'a> Debug for PakFilesystem<'a> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("PakFilesystem")
-			.field("name", &self.name)
-			.field("files", &self.files)
+			.field("inner", &self.inner.as_ref())
+			.field("base_path", &self.base_path)
 			.finish()
-	}
-}
-
-impl<'a> PartialEq for PakFilesystem<'a> {
-	fn eq(&self, other: &PakFilesystem<'_>) -> bool {
-		if self.name != other.name {
-			return false;
-		}
-
-		self.archive.files == other.archive.files
 	}
 }
 
 impl<'a> FsReadDir for PakFilesystem<'a> {
 	fn readdir(&mut self) -> Result<Vec<&mut dyn FsNode>, FsError> {
-		let mut res = Vec::new();
-		for file in self.files.iter_mut() {
-			res.push(file as &mut dyn FsNode);
-		}
-
-		Ok(res)
+		self.base_path.readdir()
 	}
 }
 
@@ -82,15 +56,19 @@ impl<'a> FsWriteDir for PakFilesystem<'a> {
 	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
 		Err(FsError::ReadOnlyFilesystem)
 	}
+
+	fn mkdir(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
+		Err(FsError::ReadOnlyFilesystem)
+	}
 }
 
 impl<'a> FsNode for PakFilesystem<'a> {
 	fn inode(&self) -> usize {
-		self.inode
+		self.inner.inode
 	}
 
 	fn name(&self) -> &str {
-		self.name
+		self.inner.name
 	}
 
 	fn permissions(&self) -> u16 {
@@ -102,7 +80,7 @@ impl<'a> FsNode for PakFilesystem<'a> {
 	}
 
 	fn try_directory(&mut self) -> Option<&mut (dyn FsDirectory)> {
-		Some(self as &mut dyn FsDirectory)
+		Some(&mut self.base_path as &mut dyn FsDirectory)
 	}
 
 	fn try_file(&mut self) -> Option<&mut (dyn FsFile)> {
@@ -113,42 +91,110 @@ impl<'a> FsNode for PakFilesystem<'a> {
 impl<'a> FsDirectory for PakFilesystem<'a> {}
 impl<'a> FsRoot for PakFilesystem<'a> {}
 
-#[derive(Clone)]
-pub struct PakFilesystemFile<'a> {
-	parent: Arc<PakArchive<'a>>,
-	pub index: Option<usize>,
-	pub path: Vec<String>,
+pub struct PakFilesystemInner<'a> {
+	pub archive: Arc<PakArchive<'a>>,
+	pub name: &'a str,
+	pub inode: usize,
 }
 
-impl<'a> PakFilesystemFile<'a> {
-	fn file_data(&self) -> Option<&'a [u8]> {
-		match self.index {
-			Some(index) => Some(self.parent.as_ref().files[index].1),
-			None => None,
-		}
-	}
-}
-
-impl<'a> Debug for PakFilesystemFile<'a> {
+impl<'a> Debug for PakFilesystemInner<'a> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("PakFilesystemFile")
-			.field("path", &self.path)
-			.field("index", &self.index)
+		f.debug_struct("PakFilesystemInner")
+			.field("name", &self.name)
+			.field("inode", &self.inode)
 			.finish()
 	}
 }
 
-impl<'a> PartialEq for PakFilesystemFile<'a> {
-	fn eq(&self, other: &PakFilesystemFile<'_>) -> bool {
+impl<'a> PartialEq for PakFilesystemInner<'a> {
+	fn eq(&self, other: &PakFilesystemInner<'_>) -> bool {
+		if self.name != other.name {
+			return false;
+		}
+
+		self.archive.files == other.archive.files
+	}
+}
+
+#[derive(Clone)]
+pub struct PakFilesystemPath<'a> {
+	parent: Arc<PakFilesystemInner<'a>>,
+	pub children: Vec<Self>,
+	pub index: Option<usize>,
+	pub path: Vec<String>,
+}
+
+impl<'a> PakFilesystemPath<'a> {
+	pub fn new_from_inner(inner: Arc<PakFilesystemInner<'a>>) -> Self {
+		Self {
+			parent: Arc::clone(&inner),
+			children: Vec::new(),
+			index: None,
+			path: Vec::new(),
+		}
+	}
+
+	fn file_data(&self) -> Option<&'a [u8]> {
+		match self.index {
+			Some(index) => Some(self.parent.as_ref().archive.files[index].1),
+			None => None,
+		}
+	}
+
+	fn update_children(&mut self) {
+		let parent = unsafe { Arc::get_mut_unchecked(&mut self.parent) };
+		let mut children = Vec::new();
+
+		for (index, file) in (0..).zip(parent.archive.files.iter()) {
+			let file_path = fspath::split(&fspath::normalize(&file.0));
+			if let Some(subslice) = file_path.strip_prefix(self.path.clone().as_slice()) {
+				if subslice.len() == 1 {
+					children.push((Some(index), file_path));
+				} else {
+					let dirpath = if file_path.len() == 1 {
+						file_path.clone()
+					} else {
+						Vec::from(&file_path[..(file_path.len() + 1) - subslice.len()])
+					};
+
+					children.push((None, dirpath))
+				}
+			}
+		}
+
+		self.children.clear();
+		for (index, path) in children {
+			self.children.push(Self {
+				parent: Arc::clone(&self.parent),
+				children: Vec::new(),
+				index,
+				path,
+			});
+		}
+	}
+}
+
+impl<'a> Debug for PakFilesystemPath<'a> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("PakFilesystemPath")
+			.field("path", &self.path)
+			.field("index", &self.index)
+			.field("children", &self.children)
+			.finish()
+	}
+}
+
+impl<'a> PartialEq for PakFilesystemPath<'a> {
+	fn eq(&self, other: &PakFilesystemPath<'_>) -> bool {
 		if self.path != other.path || self.index != other.index {
 			return false;
 		}
 
-		self.parent.files == other.parent.files
+		self.parent == other.parent
 	}
 }
 
-impl<'a> FsNode for PakFilesystemFile<'a> {
+impl<'a> FsNode for PakFilesystemPath<'a> {
 	fn inode(&self) -> usize {
 		self.index.unwrap_or(0)
 	}
@@ -190,31 +236,38 @@ impl<'a> FsNode for PakFilesystemFile<'a> {
 	}
 }
 
-impl<'a> FsReadDir for PakFilesystemFile<'a> {
+impl<'a> FsReadDir for PakFilesystemPath<'a> {
 	fn readdir(&mut self) -> Result<Vec<&mut dyn FsNode>, FsError> {
-		let res = Vec::new();
+		self.update_children();
 
-		// TODO: this
+		let mut res = Vec::new();
+		for child in self.children.iter_mut() {
+			res.push(child as &mut dyn FsNode);
+		}
 
 		Ok(res)
 	}
 }
 
-impl<'a> FsWriteDir for PakFilesystemFile<'a> {
+impl<'a> FsWriteDir for PakFilesystemPath<'a> {
 	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
+		Err(FsError::ReadOnlyFilesystem)
+	}
+
+	fn mkdir(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
 		Err(FsError::ReadOnlyFilesystem)
 	}
 }
 
-impl<'a> FsDirectory for PakFilesystemFile<'a> {}
+impl<'a> FsDirectory for PakFilesystemPath<'a> {}
 
-impl<'a> FsFile for PakFilesystemFile<'a> {
+impl<'a> FsFile for PakFilesystemPath<'a> {
 	fn open(&mut self) -> Result<&mut dyn FsFileHandle, FsError> {
 		Ok(self as &mut dyn FsFileHandle)
 	}
 }
 
-impl<'a> FsFileHandle for PakFilesystemFile<'a> {
+impl<'a> FsFileHandle for PakFilesystemPath<'a> {
 	fn raw_read(&mut self, offset: usize, length: Option<usize>) -> Result<Vec<u8>, FsError> {
 		if let Some(content) = self.file_data() {
 			if offset > content.len() {

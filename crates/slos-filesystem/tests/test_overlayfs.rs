@@ -8,17 +8,17 @@ fn _construct_overlayfs() -> OverlayFilesystem<'static, 'static, 'static> {
 	use slos_filesystem::FsRoot;
 	use slos_helpers::UnsafeContainer;
 
+	const EXAMPLE_PAK: &[u8] = include_bytes!("data/pak/test.pak");
+
 	lazy_static::lazy_static! {
 		static ref MEMORY_FS: UnsafeContainer<SimpleMemoryFilesystem> =
 			UnsafeContainer::new(SimpleMemoryFilesystem::new());
-		static ref BASE_FS: UnsafeContainer<PakFilesystem<'static>> = {
-			const EXAMPLE_PAK: &[u8] = include_bytes!("data/pak/test.pak");
-			let basefs = PakFilesystem::from_bytes("pakfs-test", EXAMPLE_PAK).unwrap();
-			UnsafeContainer::new(basefs)
-		};
+		static ref BASE_FS: UnsafeContainer<PakFilesystem<'static>> =
+			UnsafeContainer::new(PakFilesystem::from_bytes("pakfs-test", EXAMPLE_PAK).unwrap());
 	}
 
 	MEMORY_FS.replace(SimpleMemoryFilesystem::new());
+	BASE_FS.replace(PakFilesystem::from_bytes("pakfs-test", EXAMPLE_PAK).unwrap());
 
 	OverlayFilesystem::new(
 		"overlayfs-test",

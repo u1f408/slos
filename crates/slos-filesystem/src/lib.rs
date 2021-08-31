@@ -33,15 +33,25 @@ pub mod path;
 pub mod impls;
 
 /// Directory read functions
+///
+/// The default implementations of functions in this trait will always return
+/// [`FsError::InvalidArgument`].
 pub trait FsReadDir {
 	/// Return an [`FsNode`] reference for each node in this directory
-	fn readdir(&mut self) -> Result<Vec<&mut dyn FsNode>, FsError>;
+	fn readdir(&mut self) -> Result<Vec<&mut dyn FsNode>, FsError> {
+		Err(FsError::InvalidArgument)
+	}
 }
 
 /// Directory write functions
+///
+/// The default implementations of functions in this trait will always return
+/// [`FsError::InvalidArgument`].
 pub trait FsWriteDir {
 	/// Create a new empty file in this directory
-	fn touch(&mut self, name: &str) -> Result<&mut dyn FsNode, FsError>;
+	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
+		Err(FsError::InvalidArgument)
+	}
 }
 
 /// Filesystem node
@@ -59,17 +69,23 @@ pub trait FsNode: Debug {
 	///
 	/// Will always return [`None`][Option::None] if this node is not the
 	/// root of a filesystem.
-	fn try_root(&mut self) -> Option<&mut dyn FsRoot>;
+	fn try_root(&mut self) -> Option<&mut dyn FsRoot> {
+		None
+	}
 
 	/// Try to get this node as a [`FsDirectory`] trait object reference
 	///
 	/// Will always return [`None`][Option::None] if this node is a file.
-	fn try_directory(&mut self) -> Option<&mut dyn FsDirectory>;
+	fn try_directory(&mut self) -> Option<&mut dyn FsDirectory> {
+		None
+	}
 
 	/// Try to get this node as a [`FsFile`] trait object reference
 	///
 	/// Will always return [`None`][Option::None] if this node is a directory.
-	fn try_file(&mut self) -> Option<&mut dyn FsFile>;
+	fn try_file(&mut self) -> Option<&mut dyn FsFile> {
+		None
+	}
 }
 
 /// A directory on a filesystem

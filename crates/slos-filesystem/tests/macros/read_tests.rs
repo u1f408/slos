@@ -35,6 +35,24 @@ macro_rules! fs_read_tests {
 
 				std::assert!(has_file);
 			}
+
+			#[test_env_log::test]
+			fn dir_readdir_each() {
+				let (mut base, fs) = $crate::__construct!($t, $gent, $genb);
+				base.mount(&[], Box::new(fs)).unwrap();
+				let fs_node = base.node_at_path(&[]).unwrap();
+				let fs_dir = fs_node.try_directory().unwrap();
+
+				let mut has_dir: bool = false;
+				for (_index, node) in (0..).zip(fs_dir.readdir().unwrap().iter_mut()) {
+					if let Some(dir) = node.try_directory() {
+						has_dir = true;
+						std::assert!(dir.readdir().is_ok());
+					}
+				}
+
+				std::assert!(has_dir);
+			}
 		}
 	};
 

@@ -12,12 +12,14 @@ use rpak::PakArchive;
 
 static mut CURRENT_INODE: usize = 0xC3010000;
 
+/// PAK archive filesystem wrapper
 pub struct PakFilesystem<'a> {
 	pub inner: Arc<PakFilesystemInner<'a>>,
 	base_path: PakFilesystemPath<'a>,
 }
 
 impl<'a> PakFilesystem<'a> {
+	/// Create a new `PakFilesystem` instance from a byte slice
 	pub fn from_bytes(name: &'static str, data: &'a [u8]) -> Result<Self, ()> {
 		let inner = Arc::new(PakFilesystemInner {
 			archive: Arc::new(PakArchive::from_bytes(data)?),
@@ -31,6 +33,8 @@ impl<'a> PakFilesystem<'a> {
 		Ok(unsafe { Self::new_from_inner(inner) })
 	}
 
+	/// Create a new `PakFilesystem` instance from an [`Arc`] containing a [`PakFilesystemInner`]
+	/// instance
 	pub unsafe fn new_from_inner(inner: Arc<PakFilesystemInner<'a>>) -> Self {
 		let base_path = PakFilesystemPath::new_from_inner(Arc::clone(&inner));
 		Self { inner, base_path }
@@ -91,6 +95,7 @@ impl<'a> FsNode for PakFilesystem<'a> {
 impl<'a> FsDirectory for PakFilesystem<'a> {}
 impl<'a> FsRoot for PakFilesystem<'a> {}
 
+/// Inner PAK archive-as-filesystem structure
 pub struct PakFilesystemInner<'a> {
 	pub archive: Arc<PakArchive<'a>>,
 	pub name: &'a str,
@@ -116,6 +121,7 @@ impl<'a> PartialEq for PakFilesystemInner<'a> {
 	}
 }
 
+/// Representation of a file or directory path within a PAK archive-as-filesystem
 #[derive(Clone)]
 pub struct PakFilesystemPath<'a> {
 	parent: Arc<PakFilesystemInner<'a>>,

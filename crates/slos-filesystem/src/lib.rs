@@ -361,8 +361,8 @@ pub fn traverse_node<'x>(
 	}
 
 	let node = current_node.into_inner();
-	if ignore_root && node.inode() == root_inode {
-		trace!("current_node.inode() == root.inode(), returning None");
+	if ignore_root && node.try_root().is_some() && node.inode() == root_inode {
+		trace!("ignore_root set, returning None");
 		return None;
 	} else {
 		trace!("we've got our node, returning {:?}", node);

@@ -13,6 +13,7 @@ lazy_static! {
 }
 
 /// A [`SystemConsole`] implementation that ignores read & write operations
+#[derive(Debug)]
 pub struct NullConsole;
 
 impl FsFileHandle for NullConsole {

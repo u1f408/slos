@@ -14,6 +14,7 @@ lazy_static! {
 /// Hosted [`SystemConsole`] implementation
 ///
 /// This just forwards read/write to the host's stdin/stdout.
+#[derive(Debug)]
 pub struct Console;
 
 impl FsFileHandle for Console {

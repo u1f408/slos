@@ -3,7 +3,7 @@
 use anyhow::{bail, Context as AnyhowContext, Result};
 
 use super::Context;
-use slos_filesystem::memory::SimpleMemoryFs;
+use slos_filesystem::impls::SimpleMemoryFilesystem;
 
 /// Print a normalized path
 pub fn cmd_path_normalize(_context: &mut Context, args: &[String]) -> Result<()> {
@@ -47,7 +47,7 @@ pub fn cmd_mount_list(context: &mut Context, _args: &[String]) -> Result<()> {
 	Ok(())
 }
 
-/// Mount a new [`SimpleMemoryFs`] on the given path
+/// Mount a new [`SimpleMemoryFilesystem`] on the given path
 pub fn cmd_mount_new_memoryfs(context: &mut Context, args: &[String]) -> Result<()> {
 	let path = if let Some(path) = args.first() {
 		slos_filesystem::path::split(path)
@@ -59,8 +59,8 @@ pub fn cmd_mount_new_memoryfs(context: &mut Context, args: &[String]) -> Result<
 
 	context
 		.fs
-		.mount(&path_split, Box::new(SimpleMemoryFs::new()))
-		.with_context(|| "failed to mount new MemoryFs")?;
+		.mount(&path_split, Box::new(SimpleMemoryFilesystem::new()))
+		.with_context(|| "failed to mount new SimpleMemoryFilesystem")?;
 
 	Ok(())
 }
@@ -73,27 +73,12 @@ pub fn cmd_file_read(context: &mut Context, args: &[String]) -> Result<()> {
 		bail!("invalid path")
 	};
 
-	let mut path_split = path.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
+	let path_split = path.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
 
-	let filename = if let Some(filename) = path_split.pop() {
-		filename
-	} else {
-		bail!("invalid path")
-	};
-
-	let parent = context
+	let node = context
 		.fs
 		.node_at_path(&path_split)
-		.context("couldn't get parent")?;
-	let parentdir = parent
-		.try_directory()
-		.context("parent is not a directory")?;
-	let mut readdir = parentdir.readdir().context("couldn't read directory")?;
-	let node = readdir
-		.iter_mut()
-		.filter(|x| x.name() == filename)
-		.next()
-		.context("no node with that name")?;
+		.context("couldn't get node")?;
 	let filenode = node.try_file().context("failed to FsNode.try_file")?;
 	let filehandle = filenode.open().context("failed to open file")?;
 	let content = filehandle

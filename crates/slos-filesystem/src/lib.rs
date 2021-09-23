@@ -1,7 +1,10 @@
 #![no_std]
+#![feature(allocator_internals)]
+#![needs_allocator]
 #![allow(incomplete_features)]
 #![feature(alloc_prelude)]
 #![feature(trait_upcasting)]
+#![feature(get_mut_unchecked)]
 
 extern crate alloc;
 #[cfg(feature = "std")]
@@ -25,29 +28,39 @@ lazy_static::lazy_static! {
 
 mod errors;
 pub use self::errors::*;
-pub mod memory;
 pub mod path;
 
+pub mod impls;
+
 /// Directory read functions
+///
+/// The default implementations of functions in this trait will always return
+/// [`FsError::InvalidArgument`].
 pub trait FsReadDir {
 	/// Return an [`FsNode`] reference for each node in this directory
-	fn readdir(&mut self) -> Result<Vec<&mut (dyn FsNode)>, FsError>;
+	fn readdir(&mut self) -> Result<Vec<&mut dyn FsNode>, FsError> {
+		Err(FsError::InvalidArgument)
+	}
 }
 
 /// Directory write functions
+///
+/// The default implementations of functions in this trait will always return
+/// [`FsError::InvalidArgument`].
 pub trait FsWriteDir {
 	/// Create a new empty file in this directory
-	fn touch(&mut self, name: &str) -> Result<&mut (dyn FsNode), FsError>;
-}
+	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
+		Err(FsError::InvalidArgument)
+	}
 
-/// Mountable filesystem root
-pub trait FsRoot: Send + FsNode + FsReadDir + FsWriteDir + Debug {}
+	/// Create a new empty directory in this directory
+	fn mkdir(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
+		Err(FsError::InvalidArgument)
+	}
+}
 
 /// Filesystem node
 pub trait FsNode: Debug {
-	/// Try to get the root filesystem this node belongs to
-	fn mount(&self) -> Option<&dyn FsRoot>;
-
 	/// Get the inode value for this node
 	fn inode(&self) -> usize;
 
@@ -57,15 +70,27 @@ pub trait FsNode: Debug {
 	/// Get the permissions of this node
 	fn permissions(&self) -> u16;
 
+	/// Try to get this node as a [`FsRoot`] trait object reference
+	///
+	/// Will always return [`None`][Option::None] if this node is not the
+	/// root of a filesystem.
+	fn try_root(&mut self) -> Option<&mut dyn FsRoot> {
+		None
+	}
+
 	/// Try to get this node as a [`FsDirectory`] trait object reference
 	///
 	/// Will always return [`None`][Option::None] if this node is a file.
-	fn try_directory(&mut self) -> Option<&mut (dyn FsDirectory)>;
+	fn try_directory(&mut self) -> Option<&mut dyn FsDirectory> {
+		None
+	}
 
 	/// Try to get this node as a [`FsFile`] trait object reference
 	///
 	/// Will always return [`None`][Option::None] if this node is a directory.
-	fn try_file(&mut self) -> Option<&mut (dyn FsFile)>;
+	fn try_file(&mut self) -> Option<&mut dyn FsFile> {
+		None
+	}
 }
 
 /// A directory on a filesystem
@@ -73,11 +98,14 @@ pub trait FsDirectory: FsNode + FsReadDir + FsWriteDir {}
 
 /// A file on a filesystem
 pub trait FsFile: FsNode {
-	fn open(&mut self) -> Result<&mut (dyn FsFileHandle), FsError>;
+	fn open(&mut self) -> Result<&mut dyn FsFileHandle, FsError>;
 }
 
+/// Mountable filesystem root
+pub trait FsRoot: Send + FsDirectory + Debug {}
+
 /// Read/write handle to a [`FsFile`]
-pub trait FsFileHandle {
+pub trait FsFileHandle: Debug {
 	/// Try to read from the file
 	///
 	/// Attempts to read `length` bytes from the `offset` into the file.
@@ -292,22 +320,31 @@ impl FilesystemBase {
 			}
 		};
 
-		// reverse the list of path segments, to allow us to pop from this list
-		let mut rev_segments = {
-			let mut rev_segments = path_remaining.clone();
-			rev_segments.reverse();
-			rev_segments
-		};
-
 		// traverse the mountpoint for the node
-		//
-		// this will just fall through if there's nothing in `path_remaining`
-		// so we'll automatically return the mountpoint root without having to
-		// explicitly check for that
-		let current_node: UnsafeContainer<&mut dyn FsNode> = UnsafeContainer::new(mount_root);
-		'fsearch: while let Some(path_seg) = rev_segments.pop() {
-			if let Some(dir) = current_node.get().try_directory() {
-				for new in dir.readdir()? {
+		match traverse_node(mount_root, path_remaining.clone(), false) {
+			Some(node) => Ok(node),
+			None => Err(FsError::FileNotFound),
+		}
+	}
+}
+
+/// Traverse the directory node `root` to find the node at `subpath`
+///
+/// If `ignore_root` is `true`, this method will return `None` instead of
+/// `Some(root)` when `subpath` is empty.
+pub fn traverse_node<'x>(
+	root: &'x mut dyn FsNode,
+	mut subpath: Vec<String>,
+	ignore_root: bool,
+) -> Option<&'x mut dyn FsNode> {
+	subpath.reverse();
+	let root_inode = root.inode();
+
+	let current_node: UnsafeContainer<&'x mut dyn FsNode> = UnsafeContainer::new(root);
+	'fsearch: while let Some(path_seg) = subpath.pop() {
+		if let Some(dir) = current_node.get().try_directory() {
+			if let Ok(rd) = dir.readdir() {
+				for new in rd {
 					if new.name() == path_seg {
 						trace!("found next node, name={:?}", path_seg);
 						current_node.replace(new);
@@ -315,19 +352,20 @@ impl FilesystemBase {
 					}
 				}
 			}
-
-			// if we have no path segments left at this point, we have our node
-			if rev_segments.is_empty() {
-				trace!("we've got our node, breaking 'fsearch");
-				break 'fsearch;
-			}
-
-			// but if we've fallen through to here, and we have path segments left,
-			// the path segment we need was not found in the current directory node,
-			// so return a FileNotFound
-			return Err(FsError::FileNotFound);
 		}
 
-		Ok(current_node.into_inner())
+		// if we have no path segments left at this point, we have our node
+		if subpath.is_empty() {
+			break 'fsearch;
+		}
+	}
+
+	let node = current_node.into_inner();
+	if ignore_root && node.try_root().is_some() && node.inode() == root_inode {
+		trace!("ignore_root set, returning None");
+		return None;
+	} else {
+		trace!("we've got our node, returning {:?}", node);
+		return Some(node);
 	}
 }

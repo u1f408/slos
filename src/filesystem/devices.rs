@@ -60,7 +60,7 @@ impl SystemDeviceCollection {
 }
 
 impl FsReadDir for SystemDeviceCollection {
-	fn readdir(&mut self) -> Result<Vec<&mut (dyn FsNode)>, FsError> {
+	fn readdir(&mut self) -> Result<Vec<&mut dyn FsNode>, FsError> {
 		let mut res = Vec::new();
 
 		for file in self.devices.as_mut_slice().iter_mut() {
@@ -74,16 +74,12 @@ impl FsReadDir for SystemDeviceCollection {
 }
 
 impl FsWriteDir for SystemDeviceCollection {
-	fn touch(&mut self, _name: &str) -> Result<&mut (dyn FsNode), FsError> {
-		Err(FsError::InvalidArgument)
+	fn touch(&mut self, _name: &str) -> Result<&mut dyn FsNode, FsError> {
+		Err(FsError::ReadOnlyFilesystem)
 	}
 }
 
 impl FsNode for SystemDeviceCollection {
-	fn mount(&self) -> Option<&dyn FsRoot> {
-		Some(self as &dyn FsRoot)
-	}
-
 	fn inode(&self) -> usize {
 		0
 	}
@@ -96,11 +92,15 @@ impl FsNode for SystemDeviceCollection {
 		0o777
 	}
 
-	fn try_directory(&mut self) -> Option<&mut (dyn FsDirectory)> {
+	fn try_root(&mut self) -> Option<&mut dyn FsRoot> {
+		Some(self as &mut dyn FsRoot)
+	}
+
+	fn try_directory(&mut self) -> Option<&mut dyn FsDirectory> {
 		Some(self as &mut dyn FsDirectory)
 	}
 
-	fn try_file(&mut self) -> Option<&mut (dyn FsFile)> {
+	fn try_file(&mut self) -> Option<&mut dyn FsFile> {
 		None
 	}
 }
@@ -124,10 +124,6 @@ pub struct SystemDeviceFile {
 }
 
 impl FsNode for SystemDeviceFile {
-	fn mount(&self) -> Option<&dyn FsRoot> {
-		None
-	}
-
 	fn inode(&self) -> usize {
 		self.inode
 	}
@@ -140,17 +136,21 @@ impl FsNode for SystemDeviceFile {
 		0o666
 	}
 
-	fn try_directory(&mut self) -> Option<&mut (dyn FsDirectory)> {
+	fn try_root(&mut self) -> Option<&mut dyn FsRoot> {
 		None
 	}
 
-	fn try_file(&mut self) -> Option<&mut (dyn FsFile)> {
+	fn try_directory(&mut self) -> Option<&mut dyn FsDirectory> {
+		None
+	}
+
+	fn try_file(&mut self) -> Option<&mut dyn FsFile> {
 		Some(self as &mut dyn FsFile)
 	}
 }
 
 impl FsFile for SystemDeviceFile {
-	fn open(&mut self) -> Result<&mut (dyn FsFileHandle), FsError> {
+	fn open(&mut self) -> Result<&mut dyn FsFileHandle, FsError> {
 		Ok(*self.device.get())
 	}
 }

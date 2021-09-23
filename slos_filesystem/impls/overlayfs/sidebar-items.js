@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["OverlayFilesystem","An overlay filesystem proxy."],["OverlayFilesystemInner",""],["OverlayFilesystemPath",""]]});

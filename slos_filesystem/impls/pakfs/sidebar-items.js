@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["PakFilesystem","PAK archive filesystem wrapper"],["PakFilesystemInner","Inner PAK archive-as-filesystem structure"],["PakFilesystemPath","Representation of a file or directory path within a PAK archive-as-filesystem"]]});

@@ -26,6 +26,7 @@
 <span id="26">26</span>
 <span id="27">27</span>
 <span id="28">28</span>
+<span id="29">29</span>
 </pre><pre class="rust"><code><span class="doccomment">//! Null console implementation</span>
 
 <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::alloc_prelude</span>::<span class="kw-2">*</span>;
@@ -41,6 +42,7 @@
 }
 
 <span class="doccomment">/// A [`SystemConsole`] implementation that ignores read &amp; write operations</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">NullConsole</span>;
 
 <span class="kw">impl</span> <span class="ident">FsFileHandle</span> <span class="kw">for</span> <span class="ident">NullConsole</span> {

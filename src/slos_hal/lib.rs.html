@@ -89,7 +89,7 @@
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">null_system</span>;
 
 <span class="doccomment">/// System console</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">SystemConsole</span>: <span class="ident">FsFileHandle</span> {}
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">SystemConsole</span>: <span class="ident">Debug</span> <span class="op">+</span> <span class="ident">FsFileHandle</span> {}
 
 <span class="doccomment">/// System CPU handling</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">SystemCpu</span> {

@@ -45,6 +45,7 @@
 <span id="45">45</span>
 <span id="46">46</span>
 <span id="47">47</span>
+<span id="48">48</span>
 </pre><pre class="rust"><code><span class="doccomment">//! Forwarding to host stdin/stdout</span>
 
 <span class="kw">use</span> <span class="ident">lazy_static::lazy_static</span>;
@@ -61,6 +62,7 @@
 <span class="doccomment">/// Hosted [`SystemConsole`] implementation</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// This just forwards read/write to the host&#39;s stdin/stdout.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Console</span>;
 
 <span class="kw">impl</span> <span class="ident">FsFileHandle</span> <span class="kw">for</span> <span class="ident">Console</span> {
